@@ -79,6 +79,12 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
 
     if (!currentScript || !currentAction) return null;
 
+    // Helper to get text based on language
+    const getText = (text: string | { en: string; zh: string }) => {
+        if (typeof text === 'string') return text;
+        return text[useGameStore.getState().language] || text.en;
+    };
+
     // Render Logic
     const isDialogue = currentAction.type === 'dialogue';
     const isChoice = currentAction.type === 'choice';
@@ -108,13 +114,15 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                     {isDialogue && (
                         <div onClick={handleNext} className="cursor-pointer">
                             <h3 className="mb-2 text-xl font-bold text-blue-400">
-                                {currentAction.speaker === 'player' ? 'You' :
+                                {currentAction.speaker === 'player' ? (useGameStore.getState().language === 'zh' ? '你' : 'You') :
                                     currentAction.speaker === 'narrator' ? '' :
-                                        CHARACTERS[currentAction.speaker]?.name}
+                                        getText(CHARACTERS[currentAction.speaker]?.name)}
                             </h3>
-                            <p className="text-lg text-white leading-relaxed">{currentAction.text}</p>
+                            <p className="text-lg text-white leading-relaxed">{getText(currentAction.text)}</p>
                             <div className="mt-4 flex justify-end">
-                                <span className="animate-pulse text-xs text-gray-400">Click to continue ▼</span>
+                                <span className="animate-pulse text-xs text-gray-400">
+                                    {useGameStore.getState().language === 'zh' ? '点击继续 ▼' : 'Click to continue ▼'}
+                                </span>
                             </div>
                         </div>
                     )}
@@ -127,7 +135,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                                     onClick={() => handleChoice(option)}
                                     className="w-full rounded-lg border border-white/10 bg-white/5 p-4 text-left text-lg font-medium text-white transition-all hover:bg-blue-600 hover:scale-[1.02]"
                                 >
-                                    {option.label}
+                                    {getText(option.label)}
                                 </button>
                             ))}
                         </div>

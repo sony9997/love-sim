@@ -1,7 +1,9 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Play, RotateCcw, Settings } from 'lucide-react';
+import { useGameStore } from '@/lib/store';
+import { getTranslation } from '@/lib/i18n';
+import { Play, RotateCcw, Settings, Globe } from 'lucide-react';
 
 interface MainMenuProps {
     onNewGame: () => void;
@@ -10,12 +12,29 @@ interface MainMenuProps {
 }
 
 export default function MainMenu({ onNewGame, onLoadGame, hasSave }: MainMenuProps) {
+    const { language, setLanguage } = useGameStore();
+    const t = (key: string) => getTranslation(language, key);
+
+    const toggleLanguage = () => {
+        setLanguage(language === 'en' ? 'zh' : 'en');
+    };
+
     return (
         <div className="relative flex h-full w-full flex-col items-center justify-center bg-black">
             {/* Background with blur */}
             <div
                 className="absolute inset-0 bg-[url('/assets/backgrounds/campus_map.png')] bg-cover bg-center opacity-50 blur-sm"
             />
+
+            <div className="absolute top-8 right-8 z-20">
+                <button
+                    onClick={toggleLanguage}
+                    className="flex items-center space-x-2 rounded-full bg-white/10 px-4 py-2 text-white backdrop-blur-md hover:bg-white/20"
+                >
+                    <Globe className="h-4 w-4" />
+                    <span>{language === 'en' ? 'English' : '中文'}</span>
+                </button>
+            </div>
 
             <div className="z-10 flex flex-col items-center space-y-12">
                 <motion.div
@@ -43,26 +62,26 @@ export default function MainMenu({ onNewGame, onLoadGame, hasSave }: MainMenuPro
                         className="group relative flex items-center justify-center space-x-3 rounded-full bg-white/10 px-8 py-4 text-lg font-semibold text-white backdrop-blur-md transition-all hover:bg-pink-500 hover:scale-105 hover:shadow-[0_0_20px_rgba(236,72,153,0.5)]"
                     >
                         <Play className="h-5 w-5 fill-current" />
-                        <span>New Game</span>
+                        <span>{t('newGame')}</span>
                     </button>
 
                     <button
                         onClick={onLoadGame}
                         disabled={!hasSave}
                         className={`group relative flex items-center justify-center space-x-3 rounded-full px-8 py-4 text-lg font-semibold backdrop-blur-md transition-all ${hasSave
-                                ? "bg-white/10 text-white hover:bg-blue-500 hover:scale-105 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]"
-                                : "bg-white/5 text-gray-500 cursor-not-allowed"
+                            ? "bg-white/10 text-white hover:bg-blue-500 hover:scale-105 hover:shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+                            : "bg-white/5 text-gray-500 cursor-not-allowed"
                             }`}
                     >
                         <RotateCcw className="h-5 w-5" />
-                        <span>Continue</span>
+                        <span>{t('continue')}</span>
                     </button>
 
                     <button
                         className="group relative flex items-center justify-center space-x-3 rounded-full bg-white/10 px-8 py-4 text-lg font-semibold text-white backdrop-blur-md transition-all hover:bg-purple-500 hover:scale-105 hover:shadow-[0_0_20px_rgba(168,85,247,0.5)]"
                     >
                         <Settings className="h-5 w-5" />
-                        <span>Settings</span>
+                        <span>{t('settings')}</span>
                     </button>
                 </motion.div>
             </div>

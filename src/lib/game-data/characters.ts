@@ -1,10 +1,10 @@
-import { Character } from './types';
+import { Character, CharacterId } from './types';
 
-export const CHARACTERS: Record<string, Character> = {
+export const CHARACTERS: Record<CharacterId | string, Character> = {
     heroine1: {
         id: 'heroine1',
-        name: 'Lin Yue',
-        description: 'The quiet girl in your CS class. Always reading in the library.',
+        name: { en: 'Lin Yue', zh: '林月' },
+        description: { en: 'A quiet literature student who loves books.', zh: '安静的文学系学生，喜爱读书。' },
         avatar: '/assets/characters/heroine1/avatar.png',
         sprites: {
             default: '/assets/characters/heroine1/default.png',
@@ -16,54 +16,54 @@ export const CHARACTERS: Record<string, Character> = {
     },
     heroine2: {
         id: 'heroine2',
-        name: 'Su Qing',
-        description: 'The energetic president of the Anime Club.',
+        name: { en: 'Su Qing', zh: '苏晴' },
+        description: { en: 'Energetic president of the Anime Club.', zh: '充满活力的动漫社社长。' },
         avatar: '/assets/characters/heroine2/avatar.png',
         sprites: {
             default: '/assets/characters/heroine2/default.png',
-            happy: '/assets/characters/heroine2/happy.png',
-            angry: '/assets/characters/heroine2/angry.png',
-            sad: '/assets/characters/heroine2/sad.png',
-            blush: '/assets/characters/heroine2/blush.png',
+            happy: '/assets/characters/heroine2/default.png',
+            angry: '/assets/characters/heroine2/default.png',
+            sad: '/assets/characters/heroine2/default.png',
+            blush: '/assets/characters/heroine2/default.png',
         },
     },
     heroine3: {
         id: 'heroine3',
-        name: 'Chen Xi',
-        description: 'A rich senior student who drives a sports car to school.',
+        name: { en: 'Chen Xi', zh: '陈曦' },
+        description: { en: 'Rich and arrogant heiress.', zh: '富有的傲娇千金。' },
         avatar: '/assets/characters/heroine3/avatar.png',
         sprites: {
             default: '/assets/characters/heroine3/default.png',
-            happy: '/assets/characters/heroine3/happy.png',
-            angry: '/assets/characters/heroine3/angry.png',
-            sad: '/assets/characters/heroine3/sad.png',
-            blush: '/assets/characters/heroine3/blush.png',
+            happy: '/assets/characters/heroine3/default.png',
+            angry: '/assets/characters/heroine3/default.png',
+            sad: '/assets/characters/heroine3/default.png',
+            blush: '/assets/characters/heroine3/default.png',
         },
     },
     heroine4: {
         id: 'heroine4',
-        name: 'Jiang Yu',
-        description: 'Your childhood friend who is now a popular idol trainee.',
+        name: { en: 'Jiang Yu', zh: '江雨' },
+        description: { en: 'Childhood friend and idol trainee.', zh: '青梅竹马，偶像练习生。' },
         avatar: '/assets/characters/heroine4/avatar.png',
         sprites: {
             default: '/assets/characters/heroine4/default.png',
-            happy: '/assets/characters/heroine4/happy.png',
-            angry: '/assets/characters/heroine4/angry.png',
-            sad: '/assets/characters/heroine4/sad.png',
-            blush: '/assets/characters/heroine4/blush.png',
+            happy: '/assets/characters/heroine4/default.png',
+            angry: '/assets/characters/heroine4/default.png',
+            sad: '/assets/characters/heroine4/default.png',
+            blush: '/assets/characters/heroine4/default.png',
         },
     },
     heroine5: {
         id: 'heroine5',
-        name: 'Professor Li',
-        description: 'The strict but charming Computer Science professor.',
+        name: { en: 'Prof. Li', zh: '李教授' },
+        description: { en: 'Strict Computer Science professor.', zh: '严厉的计算机系教授。' },
         avatar: '/assets/characters/heroine5/avatar.png',
         sprites: {
             default: '/assets/characters/heroine5/default.png',
-            happy: '/assets/characters/heroine5/happy.png',
-            angry: '/assets/characters/heroine5/angry.png',
-            sad: '/assets/characters/heroine5/sad.png',
-            blush: '/assets/characters/heroine5/blush.png',
+            happy: '/assets/characters/heroine5/default.png',
+            angry: '/assets/characters/heroine5/default.png',
+            sad: '/assets/characters/heroine5/default.png',
+            blush: '/assets/characters/heroine5/default.png',
         },
     },
 };

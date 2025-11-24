@@ -3,6 +3,7 @@
 import { useGameStore } from '@/lib/store';
 import { LOCATIONS } from '@/lib/game-data/locations';
 import { cn } from '@/lib/utils';
+import { getTranslation } from '@/lib/i18n';
 import { MapPin, Bed, Book, GraduationCap, Coffee, Building2 } from 'lucide-react';
 
 const ICONS: Record<string, any> = {
@@ -23,8 +24,15 @@ const ICONS: Record<string, any> = {
 };
 
 export default function MapNavigation() {
-    const { player, setPlayerLocation, advanceTime } = useGameStore();
+    const { player, setPlayerLocation, advanceTime, language } = useGameStore();
     const currentLocation = LOCATIONS[player.location];
+    const t = (key: string) => getTranslation(language, key);
+
+    // Helper to get text based on language
+    const getText = (text: string | { en: string; zh: string }) => {
+        if (typeof text === 'string') return text;
+        return text[language] || text.en;
+    };
 
     if (!currentLocation) return <div>Error: Unknown Location {player.location}</div>;
 
@@ -33,15 +41,9 @@ export default function MapNavigation() {
             setPlayerLocation(target);
             advanceTime(0.5); // Moving takes 30 mins
         } else if (action === 'talk' && target) {
-            // This needs to trigger the DialogueSystem in GameEngine
-            // We can dispatch a custom event or use a store method if we had one for 'currentScript'
-            // For now, let's use a window event as a quick hack or better, expose a method from GameEngine via context?
-            // Actually, the cleanest way is to add 'setCurrentScript' to the store or pass it down.
-            // Let's add 'currentScriptId' to the store!
             useGameStore.setState({ currentScriptId: target });
         } else if (action === 'examine') {
             console.log('Examining...');
-            // Trigger dialogue or description
         }
     };
 
@@ -57,8 +59,8 @@ export default function MapNavigation() {
             <div className="relative z-10 flex h-full flex-col justify-between p-8">
                 {/* Header */}
                 <div className="rounded-lg bg-black/50 p-4 backdrop-blur-md">
-                    <h1 className="text-3xl font-bold text-white">{currentLocation.name}</h1>
-                    <p className="text-gray-300">{currentLocation.description}</p>
+                    <h1 className="text-3xl font-bold text-white">{getText(currentLocation.name)}</h1>
+                    <p className="text-gray-300">{getText(currentLocation.description)}</p>
                 </div>
 
                 {/* Interactables / Navigation */}
@@ -81,8 +83,8 @@ export default function MapNavigation() {
                                     <Icon className="h-6 w-6" />
                                 </div>
                                 <div>
-                                    <h3 className="font-semibold text-white">{item.label}</h3>
-                                    <p className="text-xs text-gray-400 uppercase tracking-wider">{item.action}</p>
+                                    <h3 className="font-semibold text-white">{getText(item.label)}</h3>
+                                    <p className="text-xs text-gray-400 uppercase tracking-wider">{t(`actions.${item.action}`)}</p>
                                 </div>
                             </button>
                         );

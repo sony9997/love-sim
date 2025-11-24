@@ -4,7 +4,9 @@ import { GameState, CharacterId, Time, Stats } from './game-data/types';
 
 interface GameStore extends GameState {
     currentScriptId: string | null;
+    language: 'en' | 'zh';
     // Actions
+    setLanguage: (lang: 'en' | 'zh') => void;
     setCurrentScriptId: (id: string | null) => void;
     setTime: (time: Partial<Time>) => void;
     advanceTime: (hours: number) => void;
@@ -39,11 +41,13 @@ const INITIAL_STATE: GameState = {
     },
     flags: {},
     currentScriptId: null,
+    language: 'zh', // Default to Chinese as requested
 };
 
 export const useGameStore = create<GameStore>((set) => ({
     ...INITIAL_STATE,
 
+    setLanguage: (lang) => set({ language: lang }),
     setCurrentScriptId: (id) => set({ currentScriptId: id }),
 
     setTime: (time) =>

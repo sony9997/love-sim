@@ -33,12 +33,15 @@ export type GameState = {
     relationships: Record<CharacterId, Relationship>;
     flags: Record<string, boolean>;
     currentScriptId: string | null;
+    language: 'en' | 'zh';
 };
+
+export type LocalizedText = string | { en: string; zh: string };
 
 export type Character = {
     id: CharacterId;
-    name: string;
-    description: string;
+    name: LocalizedText;
+    description: LocalizedText;
     avatar: string; // Path to image
     sprites: {
         default: string;
@@ -53,15 +56,15 @@ export type LocationId = string;
 
 export type Location = {
     id: LocationId;
-    name: string;
-    description: string;
+    name: LocalizedText;
+    description: LocalizedText;
     background: string; // Path to image
     interactables: Interactable[];
 };
 
 export type Interactable = {
     id: string;
-    label: string;
+    label: LocalizedText;
     action: 'move' | 'talk' | 'examine';
     target?: string; // Location ID or Character ID or Item ID
 };
