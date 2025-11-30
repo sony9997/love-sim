@@ -2,7 +2,7 @@
 
 import { useGameStore } from '@/lib/store';
 import { getTranslation } from '@/lib/i18n';
-import { Clock, Wallet, Brain, Heart, Dumbbell } from 'lucide-react';
+import { Clock, Wallet, Brain, Heart, Dumbbell, LucideIcon } from 'lucide-react';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const WEEKDAYS_ZH = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
@@ -46,7 +46,7 @@ export default function HUD() {
     );
 }
 
-function StatBadge({ icon: Icon, value, color, label }: { icon: any, value: number, color: string, label: string }) {
+function StatBadge({ icon: Icon, value, color, label }: { icon: LucideIcon, value: number, color: string, label: string }) {
     return (
         <div className="group flex flex-col items-center justify-center rounded-2xl border border-white/10 bg-black/60 p-2 backdrop-blur-md transition-all hover:scale-110 hover:bg-white/10 w-16 h-20">
             <Icon className={`h-5 w-5 ${color} mb-1`} />

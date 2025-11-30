@@ -1,0 +1,70 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic:
+        - generic [ref=e4]:
+          - generic [ref=e5]:
+            - generic [ref=e6]:
+              - img [ref=e7]
+              - generic [ref=e10]: Mon 11.5:00
+            - generic [ref=e12]:
+              - img [ref=e13]
+              - generic [ref=e16]: ¥1000
+          - generic [ref=e17]: Day 1
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - img [ref=e20]
+            - generic [ref=e28]: "10"
+            - generic [ref=e29]: INT
+          - generic [ref=e30]:
+            - img [ref=e31]
+            - generic [ref=e33]: "10"
+            - generic [ref=e34]: CHM
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e42]: "10"
+            - generic [ref=e43]: FIT
+      - generic [ref=e46]:
+        - generic [ref=e47]:
+          - heading "Mist City Center" [level=1] [ref=e48]
+          - paragraph [ref=e49]: The bustling city center.
+        - generic [ref=e50]:
+          - button "Campus MOVE" [ref=e51]:
+            - img [ref=e53]
+            - generic [ref=e57]:
+              - heading "Campus" [level=3] [ref=e58]
+              - paragraph [ref=e59]: MOVE
+          - button "Mall EXAMINE" [ref=e60]:
+            - img [ref=e62]
+            - generic [ref=e66]:
+              - heading "Mall" [level=3] [ref=e67]
+              - paragraph [ref=e68]: EXAMINE
+          - button "Bar MOVE" [ref=e69]:
+            - img [ref=e71]
+            - generic [ref=e74]:
+              - heading "Bar" [level=3] [ref=e75]
+              - paragraph [ref=e76]: MOVE
+          - button "Biker Club MOVE" [ref=e77]:
+            - img [ref=e79]
+            - generic [ref=e82]:
+              - heading "Biker Club" [level=3] [ref=e83]
+              - paragraph [ref=e84]: MOVE
+          - button "Walk around TALK" [active] [ref=e85]:
+            - img [ref=e87]
+            - generic [ref=e90]:
+              - heading "Walk around" [level=3] [ref=e91]
+              - paragraph [ref=e92]: TALK
+      - generic:
+        - generic:
+          - img "su_qingqian"
+        - generic [ref=e94] [cursor=pointer]:
+          - heading "Su Qingqian" [level=3] [ref=e95]
+          - paragraph [ref=e96]: ...
+          - generic [ref=e98]: Click to continue ▼
+  - button "Open Next.js Dev Tools" [ref=e104] [cursor=pointer]:
+    - img [ref=e105]
+  - alert [ref=e108]
+```

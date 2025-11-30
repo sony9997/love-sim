@@ -3,9 +3,10 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/lib/store';
-import { Script, ScriptAction, ChoiceOption, SCRIPTS } from '@/lib/game-data/scripts';
+import { Script, ChoiceOption, SCRIPTS } from '@/lib/game-data/scripts';
 import { CHARACTERS } from '@/lib/game-data/characters';
-import { cn } from '@/lib/utils';
+import { AIService } from '@/lib/ai-service';
+import { CharacterId } from '@/lib/game-data/types';
 
 interface DialogueSystemProps {
     scriptId: string;
@@ -15,19 +16,87 @@ interface DialogueSystemProps {
 export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemProps) {
     const [currentScript, setCurrentScript] = useState<Script | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const { setFlag, updateStats, updateRelationship, setPlayerLocation, advanceTime } = useGameStore();
+    const [isLoading, setIsLoading] = useState(false);
+    const { setFlag, modStats, updateRelationship, setPlayerLocation, advanceTime, language } = useGameStore();
 
+    // Initialize Script
     useEffect(() => {
-        if (SCRIPTS[scriptId]) {
-            setCurrentScript(SCRIPTS[scriptId]);
-            setCurrentIndex(0);
-        }
-    }, [scriptId]);
+        const initScript = async () => {
+            // 1. Check if it's a pre-defined script
+            if (SCRIPTS[scriptId]) {
+                setCurrentScript(SCRIPTS[scriptId]);
+                setCurrentIndex(0);
+                return;
+            }
+
+            // 2. Check if it's a character interaction (Dynamic AI)
+            if (CHARACTERS[scriptId]) {
+                // Check for "First Meeting" script
+                const metFlag = `met_${scriptId}`;
+                const meetScriptId = `meet_${scriptId}`;
+                const hasMet = useGameStore.getState().flags[metFlag];
+
+                if (!hasMet && SCRIPTS[meetScriptId]) {
+                    setCurrentScript(SCRIPTS[meetScriptId]);
+                    setCurrentIndex(0);
+                    return;
+                }
+
+                setIsLoading(true);
+                try {
+                    const charId = scriptId as CharacterId;
+                    const response = await AIService.getAgentResponse(charId, 'Hello', useGameStore.getState());
+
+                    // Create a dynamic script
+                    const dynamicScript: Script = {
+                        id: `dynamic_${Date.now()}`,
+                        actions: [
+                            {
+                                type: 'dialogue',
+                                speaker: charId,
+                                text: response,
+                                emotion: 'default'
+                            },
+                            {
+                                type: 'choice',
+                                options: [
+                                    {
+                                        label: { en: 'Chat more', zh: '再聊聊' },
+                                        nextId: charId // Loop back to character ID to trigger new AI response
+                                    },
+                                    {
+                                        label: { en: 'Leave', zh: '离开' },
+                                        nextId: 'end_conversation'
+                                    }
+                                ]
+                            }
+                        ]
+                    };
+                    setCurrentScript(dynamicScript);
+                    setCurrentIndex(0);
+                } catch (error) {
+                    console.error("AI Service Error:", error);
+                    onComplete();
+                } finally {
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            // 3. Fallback: End if unknown
+            onComplete();
+        };
+
+        initScript();
+    }, [scriptId, onComplete]);
 
     const currentAction = currentScript?.actions[currentIndex];
 
     const handleNext = () => {
-        if (!currentAction) return;
+        if (!currentAction) {
+            onComplete();
+            return;
+        }
 
         if (currentAction.type === 'end') {
             onComplete();
@@ -41,7 +110,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
             const { effect } = currentAction;
             switch (effect.type) {
                 case 'set_flag': setFlag(effect.flag, effect.value); break;
-                case 'mod_stat': updateStats({ [effect.stat]: effect.amount }); break; // Simplified
+                case 'mod_stat': modStats({ [effect.stat]: effect.amount }); break;
                 case 'mod_affection': updateRelationship(effect.charId, effect.amount); break;
                 case 'move': setPlayerLocation(effect.locationId); break;
                 case 'advance_time': advanceTime(effect.hours); break;
@@ -49,40 +118,103 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
         }
 
         if (currentAction.type === 'jump') {
-            const nextScript = SCRIPTS[currentAction.nextId];
+            const nextId = currentAction.nextId;
+            // Handle jump to character ID (AI loop)
+            if (CHARACTERS[nextId]) {
+                // We need to trigger the useEffect again. 
+                // Since we can't easily force re-mount, we might need to call a prop or reset state.
+                // Actually, changing scriptId in store would trigger re-mount of this component if the parent handles it.
+                // But here we are inside the component.
+                // Let's use a hack: set scriptId in store? No, that causes loop.
+                // Better: call initScript logic again?
+                // Simplest: useGameStore.setState({ currentScriptId: nextId }) will cause this component to unmount and remount with new prop if Parent uses key={scriptId}.
+                useGameStore.setState({ currentScriptId: nextId });
+                return;
+            }
+
+            const nextScript = SCRIPTS[nextId];
             if (nextScript) {
                 setCurrentScript(nextScript);
                 setCurrentIndex(0);
+            } else if (nextId === 'end_conversation') {
+                onComplete();
+            } else {
+                // Unknown script, end conversation
+                onComplete();
             }
             return;
         }
 
         // Move to next action
-        setCurrentIndex((prev) => prev + 1);
+        const nextIndex = currentIndex + 1;
+        if (currentScript && nextIndex >= currentScript.actions.length) {
+            // Reached end of script
+            onComplete();
+        } else {
+            setCurrentIndex(nextIndex);
+        }
     };
 
     // Auto-advance for non-interactive actions
     useEffect(() => {
+        console.log('[DialogueSystem] Auto-advance check:', {
+            hasAction: !!currentAction,
+            actionType: currentAction?.type,
+            currentIndex,
+            scriptId: currentScript?.id
+        });
+
         if (!currentAction) return;
         if (['effect', 'background', 'jump'].includes(currentAction.type)) {
+            console.log('[DialogueSystem] Auto-advancing for action type:', currentAction.type);
             handleNext();
         }
     }, [currentIndex, currentAction]);
 
     const handleChoice = (option: ChoiceOption) => {
-        const nextScript = SCRIPTS[option.nextId];
+        const nextId = option.nextId;
+        console.log('[DialogueSystem] Choice selected:', option.label, '-> nextId:', nextId);
+
+        if (nextId === 'end_conversation') {
+            onComplete();
+            return;
+        }
+
+        // If nextId is a character, it means we want to loop AI chat
+        if (CHARACTERS[nextId]) {
+            console.log('[DialogueSystem] Triggering AI chat for character:', nextId);
+            useGameStore.setState({ currentScriptId: nextId });
+            return;
+        }
+
+        const nextScript = SCRIPTS[nextId];
+        console.log('[DialogueSystem] Looking for script:', nextId, 'Found:', !!nextScript);
+
         if (nextScript) {
+            console.log('[DialogueSystem] Loading script:', nextId, 'with', nextScript.actions.length, 'actions');
             setCurrentScript(nextScript);
             setCurrentIndex(0);
+        } else {
+            // Unknown script, end conversation
+            console.warn(`[DialogueSystem] Script not found: ${nextId}`);
+            onComplete();
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none" data-testid="dialogue-overlay">
+                <div className="text-white animate-pulse">Thinking...</div>
+            </div>
+        );
+    }
 
     if (!currentScript || !currentAction) return null;
 
     // Helper to get text based on language
     const getText = (text: string | { en: string; zh: string }) => {
         if (typeof text === 'string') return text;
-        return text[useGameStore.getState().language] || text.en;
+        return text[language] || text.en;
     };
 
     // Render Logic
@@ -90,7 +222,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
     const isChoice = currentAction.type === 'choice';
 
     return (
-        <div className="absolute inset-0 z-50 flex flex-col justify-end pointer-events-none">
+        <div className="absolute inset-0 z-50 flex flex-col justify-end pointer-events-none" data-testid="dialogue-overlay">
             {/* Character Sprites Layer */}
             <div className="absolute inset-0 flex items-end justify-center pb-32 pointer-events-none">
                 <AnimatePresence mode="wait">
@@ -114,14 +246,14 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                     {isDialogue && (
                         <div onClick={handleNext} className="cursor-pointer">
                             <h3 className="mb-2 text-xl font-bold text-blue-400">
-                                {currentAction.speaker === 'player' ? (useGameStore.getState().language === 'zh' ? '你' : 'You') :
+                                {currentAction.speaker === 'player' ? (language === 'zh' ? '你' : 'You') :
                                     currentAction.speaker === 'narrator' ? '' :
                                         getText(CHARACTERS[currentAction.speaker]?.name)}
                             </h3>
                             <p className="text-lg text-white leading-relaxed">{getText(currentAction.text)}</p>
                             <div className="mt-4 flex justify-end">
                                 <span className="animate-pulse text-xs text-gray-400">
-                                    {useGameStore.getState().language === 'zh' ? '点击继续 ▼' : 'Click to continue ▼'}
+                                    {language === 'zh' ? '点击继续 ▼' : 'Click to continue ▼'}
                                 </span>
                             </div>
                         </div>

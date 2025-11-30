@@ -1,6 +1,5 @@
-
 import { create } from 'zustand';
-import { GameState, CharacterId, Time, Stats } from './game-data/types';
+import { GameState, CharacterId, Time, Stats, AgentState } from './game-data/types';
 
 interface GameStore extends GameState {
     currentScriptId: string | null;
@@ -12,13 +11,15 @@ interface GameStore extends GameState {
     advanceTime: (hours: number) => void;
     setPlayerLocation: (locationId: string) => void;
     updateStats: (stats: Partial<Stats>) => void;
+    modStats: (deltas: Partial<Stats>) => void;
     updateRelationship: (charId: CharacterId, amount: number) => void;
+    updateAgentState: (charId: CharacterId, state: Partial<AgentState>) => void;
     setFlag: (flag: string, value: boolean) => void;
 }
 
 const INITIAL_STATE: GameState = {
     player: {
-        name: 'Protagonist',
+        name: 'Lin Xuan',
         stats: {
             intelligence: 10,
             charm: 10,
@@ -33,15 +34,20 @@ const INITIAL_STATE: GameState = {
         weekday: 0, // Monday
     },
     relationships: {
-        heroine1: { affection: 0, status: 'stranger', eventsSeen: [] },
-        heroine2: { affection: 0, status: 'stranger', eventsSeen: [] },
-        heroine3: { affection: 0, status: 'stranger', eventsSeen: [] },
-        heroine4: { affection: 0, status: 'stranger', eventsSeen: [] },
-        heroine5: { affection: 0, status: 'stranger', eventsSeen: [] },
+        su_qingqian: { affection: 0, status: 'stranger', eventsSeen: [] },
+        chen_siyao: { affection: 0, status: 'stranger', eventsSeen: [] },
+        ling_ruoyu: { affection: 0, status: 'stranger', eventsSeen: [] },
+        lu_jiaxin: { affection: 0, status: 'stranger', eventsSeen: [] },
+    },
+    agentStates: {
+        su_qingqian: { mood: 'neutral', currentGoal: 'Manage Student Council', memory: [] },
+        chen_siyao: { mood: 'happy', currentGoal: 'Practice Dancing', memory: [] },
+        ling_ruoyu: { mood: 'neutral', currentGoal: 'Solve Physics Problem', memory: [] },
+        lu_jiaxin: { mood: 'neutral', currentGoal: 'Ride Motorcycle', memory: [] },
     },
     flags: {},
     currentScriptId: null,
-    language: 'zh', // Default to Chinese as requested
+    language: 'zh',
 };
 
 export const useGameStore = create<GameStore>((set) => ({
@@ -87,6 +93,19 @@ export const useGameStore = create<GameStore>((set) => ({
             },
         })),
 
+    modStats: (deltas) =>
+        set((state) => ({
+            player: {
+                ...state.player,
+                stats: {
+                    intelligence: state.player.stats.intelligence + (deltas.intelligence ?? 0),
+                    charm: state.player.stats.charm + (deltas.charm ?? 0),
+                    fitness: state.player.stats.fitness + (deltas.fitness ?? 0),
+                    money: state.player.stats.money + (deltas.money ?? 0),
+                },
+            },
+        })),
+
     updateRelationship: (charId, amount) =>
         set((state) => {
             const rel = state.relationships[charId];
@@ -94,6 +113,17 @@ export const useGameStore = create<GameStore>((set) => ({
                 relationships: {
                     ...state.relationships,
                     [charId]: { ...rel, affection: rel.affection + amount },
+                },
+            };
+        }),
+
+    updateAgentState: (charId, newState) =>
+        set((state) => {
+            const agent = state.agentStates[charId];
+            return {
+                agentStates: {
+                    ...state.agentStates,
+                    [charId]: { ...agent, ...newState },
                 },
             };
         }),

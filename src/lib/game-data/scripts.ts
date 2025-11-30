@@ -1,4 +1,4 @@
-import { CharacterId, LocationId, Stats, LocalizedText } from './types';
+import { CharacterId, LocationId, Stats, LocalizedText, GameState } from './types';
 
 export type Emotion = 'default' | 'happy' | 'angry' | 'sad' | 'blush';
 
@@ -15,7 +15,7 @@ export type ScriptAction =
 export type ChoiceOption = {
     label: LocalizedText;
     nextId: string;
-    condition?: (state: any) => boolean;
+    condition?: (state: GameState) => boolean;
 };
 
 export type Effect =
@@ -40,20 +40,20 @@ export const SCRIPTS: Record<string, Script> = {
             { type: 'background', image: '/assets/backgrounds/campus_map.png' },
             {
                 type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'September 1st. The air is humid and hot in Changsha.',
-                    zh: '9月1日。常纱市的空气潮湿而闷热。'
+                    en: 'September 1st. The air is humid and misty.',
+                    zh: '9月1日。雾城的空气潮湿而多雾。'
                 }
             },
             {
                 type: 'dialogue', speaker: 'player', text: {
-                    en: 'Phew... finally arrived at Qingyun University.',
-                    zh: '呼……终于到了庆云大学。'
+                    en: 'Phew... finally arrived at Mist City University.',
+                    zh: '呼……终于到了雾城大学。'
                 }
             },
             {
                 type: 'dialogue', speaker: 'player', text: {
-                    en: 'I am a freshman in Computer Science starting today.',
-                    zh: '从今天起，我就是计算机系的大一新生了。'
+                    en: 'I am a freshman in Finance starting today.',
+                    zh: '从今天起，我就是金融系的大一新生了。'
                 }
             },
             {
@@ -146,333 +146,139 @@ export const SCRIPTS: Record<string, Script> = {
     },
 
     // ==========================================
-    // HEROINE 1: Lin Yue (Library)
+    // HEROINE 1: Su Qingqian (Library/Student Council)
     // ==========================================
-    meet_linyue: {
-        id: 'meet_linyue',
+    meet_su_qingqian: {
+        id: 'meet_su_qingqian',
         actions: [
-            { type: 'background', image: '/assets/backgrounds/library.png' },
+            { type: 'background', image: '/assets/backgrounds/student_council.png' },
             {
                 type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'You wander into the library. It is quiet and smells of old paper.',
-                    zh: '你漫步走进图书馆。这里很安静，弥漫着陈旧纸张的气味。'
+                    en: 'You enter the Student Council Office. It is impeccably clean.',
+                    zh: '你走进学生会办公室。这里一尘不染。'
                 }
             },
             {
-                type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'You notice a girl sitting alone in the corner, surrounded by stacks of books.',
-                    zh: '你注意到一个女孩独自坐在角落里，身边堆满了书。'
-                }
-            },
-            { type: 'dialogue', speaker: 'heroine1', text: '...', emotion: 'default' },
-            {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: '(She looks like she is struggling with that stack...)',
-                    zh: '（她看起来好像搬不动那堆书……）'
-                }
-            },
-            {
-                type: 'choice',
-                options: [
-                    {
-                        label: { en: 'Offer to help', zh: '主动帮忙' },
-                        nextId: 'meet_linyue_help'
-                    },
-                    {
-                        label: { en: 'Ignore her', zh: '无视她' },
-                        nextId: 'meet_linyue_ignore'
-                    },
-                ],
-            },
-        ],
-    },
-    meet_linyue_help: {
-        id: 'meet_linyue_help',
-        actions: [
-            { type: 'effect', effect: { type: 'mod_affection', charId: 'heroine1', amount: 5 } },
-            { type: 'effect', effect: { type: 'mod_stat', stat: 'charm', amount: 1 } },
-            { type: 'effect', effect: { type: 'set_flag', flag: 'met_heroine1', value: true } },
-            {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: 'Need a hand with those?',
-                    zh: '需要帮忙吗？'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'heroine1', text: {
-                    en: 'Ah! ...Oh, um, thank you.',
-                    zh: '啊！……噢，嗯，谢谢。'
-                }, emotion: 'blush'
-            },
-            {
-                type: 'dialogue', speaker: 'heroine1', text: {
-                    en: 'I am Lin Yue. These are for my thesis.',
-                    zh: '我是林月。这些是我的论文资料。'
+                type: 'dialogue', speaker: 'su_qingqian', text: {
+                    en: 'State your business. I am busy.',
+                    zh: '有事说事。我很忙。'
                 }, emotion: 'default'
             },
             {
                 type: 'dialogue', speaker: 'player', text: {
-                    en: 'I am [Player]. Nice to meet you.',
-                    zh: '我是[玩家]。很高兴认识你。'
+                    en: 'I... uh, just wanted to say hi.',
+                    zh: '我……呃，只是想打个招呼。'
                 }
             },
-            { type: 'end' },
-        ],
-    },
-    meet_linyue_ignore: {
-        id: 'meet_linyue_ignore',
-        actions: [
             {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: '(Better not disturb her.)',
-                    zh: '（还是别打扰她了。）'
-                }
+                type: 'dialogue', speaker: 'su_qingqian', text: {
+                    en: 'Greetings are inefficient. If you have no business, please leave.',
+                    zh: '打招呼是低效的。如果没事，请离开。'
+                }, emotion: 'default'
             },
+            { type: 'effect', effect: { type: 'set_flag', flag: 'met_su_qingqian', value: true } },
             { type: 'end' },
         ],
     },
 
     // ==========================================
-    // HEROINE 2: Su Qing (Cafeteria/Club)
+    // HEROINE 2: Chen Siyao (City/Idol)
     // ==========================================
-    meet_suqing: {
-        id: 'meet_suqing',
-        actions: [
-            { type: 'background', image: '/assets/backgrounds/cafeteria.png' },
-            {
-                type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'You are looking for a seat in the crowded cafeteria.',
-                    zh: '你在拥挤的食堂里寻找座位。'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'heroine2', text: {
-                    en: 'Hey you! The one with the confused face!',
-                    zh: '嘿，你！那个一脸迷茫的家伙！'
-                }, emotion: 'happy'
-            },
-            {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: 'Me?',
-                    zh: '我？'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'heroine2', text: {
-                    en: 'Yes you! Do you like Anime? Games? Manga?',
-                    zh: '就是你！你喜欢动漫吗？游戏？漫画？'
-                }, emotion: 'default'
-            },
-            {
-                type: 'choice',
-                options: [
-                    {
-                        label: { en: 'I love them!', zh: '我超爱！' },
-                        nextId: 'meet_suqing_love'
-                    },
-                    {
-                        label: { en: 'Not really...', zh: '一般般吧……' },
-                        nextId: 'meet_suqing_meh'
-                    },
-                ],
-            },
-        ],
-    },
-    meet_suqing_love: {
-        id: 'meet_suqing_love',
-        actions: [
-            { type: 'effect', effect: { type: 'mod_affection', charId: 'heroine2', amount: 10 } },
-            { type: 'effect', effect: { type: 'set_flag', flag: 'met_heroine2', value: true } },
-            {
-                type: 'dialogue', speaker: 'heroine2', text: {
-                    en: 'I knew it! You have the aura of an otaku!',
-                    zh: '我就知道！你身上有宅男的气息！'
-                }, emotion: 'happy'
-            },
-            {
-                type: 'dialogue', speaker: 'heroine2', text: {
-                    en: 'I am Su Qing, president of the Anime Club. You MUST join us!',
-                    zh: '我是苏晴，动漫社社长。你必须加入我们！'
-                }, emotion: 'happy'
-            },
-            { type: 'end' },
-        ],
-    },
-    meet_suqing_meh: {
-        id: 'meet_suqing_meh',
-        actions: [
-            { type: 'effect', effect: { type: 'mod_affection', charId: 'heroine2', amount: -2 } },
-            {
-                type: 'dialogue', speaker: 'heroine2', text: {
-                    en: 'Boring... what a waste of a face.',
-                    zh: '真无聊……白长了一张脸。'
-                }, emotion: 'sad'
-            },
-            { type: 'end' },
-        ],
-    },
-
-    // ==========================================
-    // HEROINE 3: Chen Xi (City/Mall)
-    // ==========================================
-    meet_chenxi: {
-        id: 'meet_chenxi',
+    meet_chen_siyao: {
+        id: 'meet_chen_siyao',
         actions: [
             { type: 'background', image: '/assets/backgrounds/city_map.png' },
             {
                 type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'You are walking near the luxury shopping mall.',
-                    zh: '你走在豪华购物中心附近。'
+                    en: 'You see a girl wearing a mask and sunglasses, looking around nervously.',
+                    zh: '你看到一个戴着口罩和墨镜的女孩，神色慌张地四处张望。'
                 }
             },
             {
-                type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'A bright red sports car zooms past and screeches to a halt.',
-                    zh: '一辆鲜红色的跑车呼啸而过，然后急刹停下。'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'heroine3', text: {
-                    en: 'Hey, commoner. Do you know where the VIP parking is?',
-                    zh: '喂，庶民。你知道VIP停车场在哪吗？'
-                }, emotion: 'angry'
+                type: 'dialogue', speaker: 'chen_siyao', text: {
+                    en: 'Shh! Did you see any paparazzi?',
+                    zh: '嘘！你看到狗仔队了吗？'
+                }, emotion: 'default'
             },
             {
                 type: 'dialogue', speaker: 'player', text: {
-                    en: 'Commoner...?',
-                    zh: '庶民……？'
+                    en: 'Papa-what?',
+                    zh: '狗仔……什么？'
                 }
             },
             {
-                type: 'choice',
-                options: [
-                    {
-                        label: { en: 'Politely give directions', zh: '礼貌地指路' },
-                        nextId: 'meet_chenxi_polite'
-                    },
-                    {
-                        label: { en: 'Get angry', zh: '生气' },
-                        nextId: 'meet_chenxi_angry'
-                    },
-                ],
+                type: 'dialogue', speaker: 'chen_siyao', text: {
+                    en: 'Oh, never mind! Just act natural!',
+                    zh: '噢，没事！表现得自然点！'
+                }, emotion: 'happy'
             },
-        ],
-    },
-    meet_chenxi_polite: {
-        id: 'meet_chenxi_polite',
-        actions: [
-            { type: 'effect', effect: { type: 'mod_affection', charId: 'heroine3', amount: 5 } },
-            { type: 'effect', effect: { type: 'set_flag', flag: 'met_heroine3', value: true } },
-            {
-                type: 'dialogue', speaker: 'heroine3', text: {
-                    en: 'Hmph. At least you have manners.',
-                    zh: '哼。至少你还懂点礼貌。'
-                }, emotion: 'default'
-            },
-            {
-                type: 'dialogue', speaker: 'heroine3', text: {
-                    en: 'I am Chen Xi. Remember that name.',
-                    zh: '我是陈曦。记住这个名字。'
-                }, emotion: 'default'
-            },
-            { type: 'end' },
-        ],
-    },
-    meet_chenxi_angry: {
-        id: 'meet_chenxi_angry',
-        actions: [
-            { type: 'effect', effect: { type: 'mod_affection', charId: 'heroine3', amount: -5 } },
-            {
-                type: 'dialogue', speaker: 'heroine3', text: {
-                    en: 'How dare you speak to me like that!',
-                    zh: '你竟敢这样跟我说话！'
-                }, emotion: 'angry'
-            },
+            { type: 'effect', effect: { type: 'set_flag', flag: 'met_chen_siyao', value: true } },
             { type: 'end' },
         ],
     },
 
     // ==========================================
-    // HEROINE 4: Jiang Yu (Dorm/Phone)
+    // HEROINE 3: Ling Ruoyu (Lab)
     // ==========================================
-    meet_jiangyu: {
-        id: 'meet_jiangyu',
+    meet_ling_ruoyu: {
+        id: 'meet_ling_ruoyu',
         actions: [
-            { type: 'background', image: '/assets/backgrounds/dorm_room.png' },
+            { type: 'background', image: '/assets/backgrounds/lab.png' },
             {
                 type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'Your phone rings. It is a video call.',
-                    zh: '你的手机响了。是视频通话。'
+                    en: 'The lab is filled with the hum of machines.',
+                    zh: '实验室里充斥着机器的嗡嗡声。'
                 }
             },
             {
-                type: 'dialogue', speaker: 'heroine4', text: {
-                    en: 'Yahoo~! Big Brother! Did you settle in yet?',
-                    zh: '呀吼~！大哥哥！你安顿好了吗？'
-                }, emotion: 'happy'
+                type: 'dialogue', speaker: 'ling_ruoyu', text: {
+                    en: 'If E equals mc squared, then my coffee cup must be...',
+                    zh: '如果E等于mc平方，那我的咖啡杯一定是……'
+                }, emotion: 'default'
             },
             {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: 'Jiang Yu? Shouldn\'t you be practicing?',
-                    zh: '江雨？你不应该在练习吗？'
+                type: 'dialogue', speaker: 'narrator', text: {
+                    en: 'She knocks over a stack of papers.',
+                    zh: '她碰倒了一堆文件。'
                 }
             },
             {
-                type: 'dialogue', speaker: 'heroine4', text: {
-                    en: 'I snuck out! Being an idol trainee is so hard...',
-                    zh: '我偷偷溜出来的！当偶像练习生太辛苦了……'
+                type: 'dialogue', speaker: 'ling_ruoyu', text: {
+                    en: 'Oh dear. Gravity is quite persistent today.',
+                    zh: '哎呀。今天的重力真是顽固。'
                 }, emotion: 'sad'
             },
-            { type: 'effect', effect: { type: 'set_flag', flag: 'met_heroine4', value: true } },
-            {
-                type: 'dialogue', speaker: 'heroine4', text: {
-                    en: 'Anyway, I will come visit you at school soon! Don\'t tell my manager!',
-                    zh: '总之，我很快会去学校看你的！别告诉我的经纪人！'
-                }, emotion: 'happy'
-            },
+            { type: 'effect', effect: { type: 'set_flag', flag: 'met_ling_ruoyu', value: true } },
             { type: 'end' },
         ],
     },
 
     // ==========================================
-    // HEROINE 5: Professor Li (Classroom)
+    // HEROINE 4: Lu Jiaxin (Bar/Biker)
     // ==========================================
-    meet_professor: {
-        id: 'meet_professor',
+    meet_lu_jiaxin: {
+        id: 'meet_lu_jiaxin',
         actions: [
-            { type: 'background', image: '/assets/backgrounds/classroom.png' },
+            { type: 'background', image: '/assets/backgrounds/bar.png' },
             {
                 type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'You rush into the classroom, slightly late.',
-                    zh: '你冲进教室，稍微迟到了一点。'
+                    en: 'The bar is loud. A girl with red hair is singing on stage.',
+                    zh: '酒吧很吵。一个红发女孩正在台上唱歌。'
                 }
             },
             {
-                type: 'dialogue', speaker: 'heroine5', text: {
-                    en: 'You are late, student.',
-                    zh: '你迟到了，同学。'
-                }, emotion: 'default'
-            },
-            {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: 'I am so sorry! I got lost!',
-                    zh: '非常抱歉！我迷路了！'
+                type: 'dialogue', speaker: 'narrator', text: {
+                    en: 'She finishes the song and walks past you.',
+                    zh: '她唱完歌，从你身边走过。'
                 }
             },
             {
-                type: 'dialogue', speaker: 'heroine5', text: {
-                    en: 'Sit down. I am Professor Li. In my CS class, precision is everything.',
-                    zh: '坐下。我是李教授。在我的计算机课上，精确就是一切。'
-                }, emotion: 'default'
+                type: 'dialogue', speaker: 'lu_jiaxin', text: {
+                    en: 'What are you looking at? Never seen a singer before?',
+                    zh: '看什么看？没见过歌手吗？'
+                }, emotion: 'angry'
             },
-            {
-                type: 'dialogue', speaker: 'heroine5', text: {
-                    en: 'Don\'t let it happen again.',
-                    zh: '下不为例。'
-                }, emotion: 'default'
-            },
-            { type: 'effect', effect: { type: 'set_flag', flag: 'met_heroine5', value: true } },
-            { type: 'effect', effect: { type: 'mod_stat', stat: 'intelligence', amount: 1 } },
+            { type: 'effect', effect: { type: 'set_flag', flag: 'met_lu_jiaxin', value: true } },
             { type: 'end' },
         ],
     },

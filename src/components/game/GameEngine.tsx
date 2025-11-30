@@ -2,17 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import { useGameStore } from '@/lib/store';
-import { getTranslation } from '@/lib/i18n';
 import MainMenu from './MainMenu';
 import HUD from './HUD';
 import MapNavigation from './MapNavigation';
 import DialogueSystem from './DialogueSystem';
 
 export default function GameEngine() {
-    const [isLoaded, setIsLoaded] = useState(false);
     const [gamePhase, setGamePhase] = useState<'menu' | 'playing'>('menu');
-    const { player, time, currentScriptId, setCurrentScriptId, language } = useGameStore();
-    const t = (key: string) => getTranslation(language, key);
+    // gamePhase remains
+    const { player, time, currentScriptId, setCurrentScriptId } = useGameStore();
 
     // Load game state from localStorage on mount
     useEffect(() => {
@@ -20,16 +18,15 @@ export default function GameEngine() {
         if (savedState) {
             useGameStore.setState(JSON.parse(savedState));
         }
-        setIsLoaded(true);
     }, []);
 
     // Auto-save on state change
     useEffect(() => {
-        if (isLoaded && gamePhase === 'playing') {
+        if (gamePhase === 'playing') {
             const state = useGameStore.getState();
             localStorage.setItem('love-sim-save', JSON.stringify(state));
         }
-    }, [player, time, isLoaded, gamePhase]);
+    }, [player, time, gamePhase]);
 
     const handleNewGame = () => {
         // Reset store to initial state (need to implement reset in store or just manually set)
@@ -42,7 +39,7 @@ export default function GameEngine() {
         setGamePhase('playing');
     };
 
-    if (!isLoaded) return <div className="flex h-screen items-center justify-center bg-black text-white">{t('loading')}</div>;
+    //
     // Actually, store is initialized with default, so we can use it.
     // But wait, we are inside the component, so we can use hooks.
 

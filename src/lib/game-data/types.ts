@@ -11,7 +11,7 @@ export type Time = {
     weekday: number; // 0-6 (Mon-Sun)
 };
 
-export type CharacterId = 'heroine1' | 'heroine2' | 'heroine3' | 'heroine4' | 'heroine5';
+export type CharacterId = 'su_qingqian' | 'chen_siyao' | 'ling_ruoyu' | 'lu_jiaxin';
 
 export type RelationshipStatus = 'stranger' | 'acquaintance' | 'friend' | 'crush' | 'lover' | 'enemy';
 
@@ -19,6 +19,12 @@ export type Relationship = {
     affection: number;
     status: RelationshipStatus;
     eventsSeen: string[];
+};
+
+export type AgentState = {
+    mood: 'happy' | 'neutral' | 'sad' | 'angry' | 'anxious';
+    currentGoal: string;
+    memory: string[]; // Short summary of recent interactions
 };
 
 export type Player = {
@@ -31,6 +37,7 @@ export type GameState = {
     player: Player;
     time: Time;
     relationships: Record<CharacterId, Relationship>;
+    agentStates: Record<CharacterId, AgentState>;
     flags: Record<string, boolean>;
     currentScriptId: string | null;
     language: 'en' | 'zh';

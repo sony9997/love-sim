@@ -4,9 +4,9 @@ import { useGameStore } from '@/lib/store';
 import { LOCATIONS } from '@/lib/game-data/locations';
 import { cn } from '@/lib/utils';
 import { getTranslation } from '@/lib/i18n';
-import { MapPin, Bed, Book, GraduationCap, Coffee, Building2 } from 'lucide-react';
+import { MapPin, Bed, Book, GraduationCap, Coffee, Building2, LucideIcon } from 'lucide-react';
 
-const ICONS: Record<string, any> = {
+const ICONS: Record<string, LucideIcon> = {
     bed: Bed,
     computer: Building2, // Placeholder
     door: MapPin,

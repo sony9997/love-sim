@@ -43,13 +43,13 @@ export type Language = 'en' | 'zh';
 
 export function getTranslation(lang: Language, key: string): string {
     const keys = key.split('.');
-    let value: any = UI_TEXT[lang];
+    let value: unknown = UI_TEXT[lang];
     for (const k of keys) {
-        if (value && value[k]) {
-            value = value[k];
+        if (typeof value === 'object' && value !== null && k in (value as Record<string, unknown>)) {
+            value = (value as Record<string, unknown>)[k];
         } else {
-            return key; // Fallback to key if not found
+            return key;
         }
     }
-    return value as string;
+    return typeof value === 'string' ? value : key;
 }

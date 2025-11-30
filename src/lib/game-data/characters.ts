@@ -1,69 +1,68 @@
 import { Character, CharacterId } from './types';
 
 export const CHARACTERS: Record<CharacterId | string, Character> = {
-    heroine1: {
-        id: 'heroine1',
-        name: { en: 'Lin Yue', zh: '林月' },
-        description: { en: 'A quiet literature student who loves books.', zh: '安静的文学系学生，喜爱读书。' },
-        avatar: '/assets/characters/heroine1/avatar.png',
+    su_qingqian: {
+        id: 'su_qingqian',
+        name: { en: 'Su Qingqian', zh: '苏清浅' },
+        description: {
+            en: 'High-cold Student Council President from a legal family.',
+            zh: '高冷的学生会主席，出身法律世家。'
+        },
+        avatar: '/assets/characters/su_qingqian/avatar.png',
         sprites: {
-            default: '/assets/characters/heroine1/default.png',
-            happy: '/assets/characters/heroine1/happy.png',
-            angry: '/assets/characters/heroine1/angry.png',
-            sad: '/assets/characters/heroine1/sad.png',
-            blush: '/assets/characters/heroine1/blush.png',
+            default: '/assets/characters/su_qingqian/default.png',
+            happy: '/assets/characters/su_qingqian/happy.png',
+            angry: '/assets/characters/su_qingqian/angry.png',
+            sad: '/assets/characters/su_qingqian/sad.png',
+            blush: '/assets/characters/su_qingqian/blush.png',
         },
     },
-    heroine2: {
-        id: 'heroine2',
-        name: { en: 'Su Qing', zh: '苏晴' },
-        description: { en: 'Energetic president of the Anime Club.', zh: '充满活力的动漫社社长。' },
-        avatar: '/assets/characters/heroine2/avatar.png',
+    chen_siyao: {
+        id: 'chen_siyao',
+        name: { en: 'Chen Siyao', zh: '陈思瑶' },
+        description: {
+            en: 'Energetic idol hiding her identity as a student.',
+            zh: '元气满满的偶像，隐藏身份在学校读书。'
+        },
+        avatar: '/assets/characters/chen_siyao/avatar.png',
         sprites: {
-            default: '/assets/characters/heroine2/default.png',
-            happy: '/assets/characters/heroine2/default.png',
-            angry: '/assets/characters/heroine2/default.png',
-            sad: '/assets/characters/heroine2/default.png',
-            blush: '/assets/characters/heroine2/default.png',
+            default: '/assets/characters/chen_siyao/default.png',
+            happy: '/assets/characters/chen_siyao/happy.png',
+            angry: '/assets/characters/chen_siyao/angry.png',
+            sad: '/assets/characters/chen_siyao/sad.png',
+            blush: '/assets/characters/chen_siyao/blush.png',
         },
     },
-    heroine3: {
-        id: 'heroine3',
-        name: { en: 'Chen Xi', zh: '陈曦' },
-        description: { en: 'Rich and arrogant heiress.', zh: '富有的傲娇千金。' },
-        avatar: '/assets/characters/heroine3/avatar.png',
+    ling_ruoyu: {
+        id: 'ling_ruoyu',
+        name: { en: 'Ling Ruoyu', zh: '凌若羽' },
+        description: {
+            en: 'Genius physics professor who is clumsy in daily life.',
+            zh: '天才物理教授，但生活能力极差。'
+        },
+        avatar: '/assets/characters/ling_ruoyu/avatar.png',
         sprites: {
-            default: '/assets/characters/heroine3/default.png',
-            happy: '/assets/characters/heroine3/default.png',
-            angry: '/assets/characters/heroine3/default.png',
-            sad: '/assets/characters/heroine3/default.png',
-            blush: '/assets/characters/heroine3/default.png',
+            default: '/assets/characters/ling_ruoyu/default.png',
+            happy: '/assets/characters/ling_ruoyu/happy.png',
+            angry: '/assets/characters/ling_ruoyu/angry.png',
+            sad: '/assets/characters/ling_ruoyu/sad.png',
+            blush: '/assets/characters/ling_ruoyu/blush.png',
         },
     },
-    heroine4: {
-        id: 'heroine4',
-        name: { en: 'Jiang Yu', zh: '江雨' },
-        description: { en: 'Childhood friend and idol trainee.', zh: '青梅竹马，偶像练习生。' },
-        avatar: '/assets/characters/heroine4/avatar.png',
-        sprites: {
-            default: '/assets/characters/heroine4/default.png',
-            happy: '/assets/characters/heroine4/default.png',
-            angry: '/assets/characters/heroine4/default.png',
-            sad: '/assets/characters/heroine4/default.png',
-            blush: '/assets/characters/heroine4/default.png',
+    lu_jiaxin: {
+        id: 'lu_jiaxin',
+        name: { en: 'Lu Jiaxin', zh: '陆嘉欣' },
+        description: {
+            en: 'Rebellious heiress who loves motorcycles.',
+            zh: '叛逆的财阀千金，热爱机车。'
         },
-    },
-    heroine5: {
-        id: 'heroine5',
-        name: { en: 'Prof. Li', zh: '李教授' },
-        description: { en: 'Strict Computer Science professor.', zh: '严厉的计算机系教授。' },
-        avatar: '/assets/characters/heroine5/avatar.png',
+        avatar: '/assets/characters/lu_jiaxin/avatar.png',
         sprites: {
-            default: '/assets/characters/heroine5/default.png',
-            happy: '/assets/characters/heroine5/default.png',
-            angry: '/assets/characters/heroine5/default.png',
-            sad: '/assets/characters/heroine5/default.png',
-            blush: '/assets/characters/heroine5/default.png',
+            default: '/assets/characters/lu_jiaxin/default.png',
+            happy: '/assets/characters/lu_jiaxin/happy.png',
+            angry: '/assets/characters/lu_jiaxin/angry.png',
+            sad: '/assets/characters/lu_jiaxin/sad.png',
+            blush: '/assets/characters/lu_jiaxin/blush.png',
         },
     },
 };
