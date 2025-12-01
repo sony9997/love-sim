@@ -57,6 +57,7 @@ export type Character = {
         sad: string;
         blush: string;
     };
+    systemPrompt: string;
 };
 
 export type LocationId = string;

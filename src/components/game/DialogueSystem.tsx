@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/lib/store';
-import { Script, ChoiceOption, SCRIPTS } from '@/lib/game-data/scripts';
+import { Script, ChoiceOption, SCRIPTS, ScriptAction } from '@/lib/game-data/scripts';
 import { CHARACTERS } from '@/lib/game-data/characters';
 import { AIService } from '@/lib/ai-service';
 import { CharacterId } from '@/lib/game-data/types';
@@ -17,6 +17,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
     const [currentScript, setCurrentScript] = useState<Script | null>(null);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
+    const [playerInput, setPlayerInput] = useState('');
     const { setFlag, modStats, updateRelationship, setPlayerLocation, advanceTime, language } = useGameStore();
 
     // Initialize Script
@@ -104,6 +105,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
         }
 
         if (currentAction.type === 'choice') return; // Wait for choice
+        if (currentAction.type === 'input') return; // Wait for player input
 
         // Process effects before moving to next
         if (currentAction.type === 'effect') {
@@ -201,6 +203,62 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
         }
     };
 
+    const handlePlayerInput = async () => {
+        if (!playerInput.trim()) return;
+
+        const input = playerInput.trim();
+        setPlayerInput(''); // Clear input
+        setIsLoading(true);
+
+        try {
+            // Determine which character is speaking (from previous dialogue or context)
+            // For now, we'll look for the last character dialogue in the script
+            let characterId: CharacterId | null = null;
+
+            // Search backwards for the last character dialogue
+            for (let i = currentIndex - 1; i >= 0; i--) {
+                const action = currentScript?.actions[i];
+                if (action?.type === 'dialogue' && action.speaker !== 'player' && action.speaker !== 'narrator') {
+                    characterId = action.speaker as CharacterId;
+                    break;
+                }
+            }
+
+            if (!characterId) {
+                console.error('[DialogueSystem] No character found for AI response');
+                setIsLoading(false);
+                handleNext();
+                return;
+            }
+
+            // Get AI response
+            const response = await AIService.getAgentResponse(characterId, input, useGameStore.getState());
+
+            // Create a dynamic dialogue action for the AI response
+            const aiDialogue: ScriptAction = {
+                type: 'dialogue',
+                speaker: characterId,
+                text: response,
+                emotion: 'default'
+            };
+
+            // Insert the AI response and another input action into the script
+            const newActions = [
+                ...currentScript!.actions.slice(0, currentIndex + 1),
+                aiDialogue,
+                { type: 'input' } as ScriptAction,
+                ...currentScript!.actions.slice(currentIndex + 1)
+            ];
+
+            setCurrentScript({ ...currentScript!, actions: newActions });
+            setCurrentIndex(currentIndex + 1); // Move to AI response
+        } catch (error) {
+            console.error('[DialogueSystem] Failed to get AI response:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm pointer-events-none" data-testid="dialogue-overlay">
@@ -220,6 +278,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
     // Render Logic
     const isDialogue = currentAction.type === 'dialogue';
     const isChoice = currentAction.type === 'choice';
+    const isInput = currentAction.type === 'input';
 
     return (
         <div className="absolute inset-0 z-50 flex flex-col justify-end pointer-events-none" data-testid="dialogue-overlay">
@@ -241,7 +300,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
             </div>
 
             {/* Dialogue Box */}
-            {(isDialogue || isChoice) && (
+            {(isDialogue || isChoice || isInput) && (
                 <div className="pointer-events-auto relative mx-auto mb-8 w-full max-w-4xl rounded-xl border border-white/20 bg-black/80 p-6 shadow-2xl backdrop-blur-md">
                     {isDialogue && (
                         <div onClick={handleNext} className="cursor-pointer">
@@ -270,6 +329,34 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                                     {getText(option.label)}
                                 </button>
                             ))}
+                        </div>
+                    )}
+
+                    {isInput && (
+                        <div className="flex flex-col space-y-3">
+                            {currentAction.prompt && (
+                                <p className="text-sm text-gray-400 mb-2">{getText(currentAction.prompt)}</p>
+                            )}
+                            <input
+                                type="text"
+                                value={playerInput}
+                                onChange={(e) => setPlayerInput(e.target.value)}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && playerInput.trim()) {
+                                        handlePlayerInput();
+                                    }
+                                }}
+                                placeholder={language === 'zh' ? '输入你想说的话...' : 'Type your message...'}
+                                className="w-full rounded-lg border border-white/20 bg-white/10 p-4 text-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                                autoFocus
+                            />
+                            <button
+                                onClick={handlePlayerInput}
+                                disabled={!playerInput.trim()}
+                                className="w-full rounded-lg bg-blue-600 p-4 text-lg font-medium text-white transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {language === 'zh' ? '发送' : 'Send'}
+                            </button>
                         </div>
                     )}
                 </div>

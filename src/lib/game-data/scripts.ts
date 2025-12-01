@@ -10,6 +10,7 @@ export type ScriptAction =
     | { type: 'jump'; nextId: string }
     | { type: 'effect'; effect: Effect }
     | { type: 'background'; image: string }
+    | { type: 'input'; prompt?: LocalizedText }
     | { type: 'end' };
 
 export type ChoiceOption = {
@@ -164,18 +165,7 @@ export const SCRIPTS: Record<string, Script> = {
                     zh: '有事说事。我很忙。'
                 }, emotion: 'default'
             },
-            {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: 'I... uh, just wanted to say hi.',
-                    zh: '我……呃，只是想打个招呼。'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'su_qingqian', text: {
-                    en: 'Greetings are inefficient. If you have no business, please leave.',
-                    zh: '打招呼是低效的。如果没事，请离开。'
-                }, emotion: 'default'
-            },
+            { type: 'input', prompt: { en: 'What do you say?', zh: '你说什么？' } },
             { type: 'effect', effect: { type: 'set_flag', flag: 'met_su_qingqian', value: true } },
             { type: 'end' },
         ],
@@ -200,18 +190,7 @@ export const SCRIPTS: Record<string, Script> = {
                     zh: '嘘！你看到狗仔队了吗？'
                 }, emotion: 'default'
             },
-            {
-                type: 'dialogue', speaker: 'player', text: {
-                    en: 'Papa-what?',
-                    zh: '狗仔……什么？'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'chen_siyao', text: {
-                    en: 'Oh, never mind! Just act natural!',
-                    zh: '噢，没事！表现得自然点！'
-                }, emotion: 'happy'
-            },
+            { type: 'input', prompt: { en: 'What do you say?', zh: '你说什么?' } },
             { type: 'effect', effect: { type: 'set_flag', flag: 'met_chen_siyao', value: true } },
             { type: 'end' },
         ],
@@ -236,18 +215,7 @@ export const SCRIPTS: Record<string, Script> = {
                     zh: '如果E等于mc平方，那我的咖啡杯一定是……'
                 }, emotion: 'default'
             },
-            {
-                type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'She knocks over a stack of papers.',
-                    zh: '她碰倒了一堆文件。'
-                }
-            },
-            {
-                type: 'dialogue', speaker: 'ling_ruoyu', text: {
-                    en: 'Oh dear. Gravity is quite persistent today.',
-                    zh: '哎呀。今天的重力真是顽固。'
-                }, emotion: 'sad'
-            },
+            { type: 'input', prompt: { en: 'What do you say?', zh: '你说什么？' } },
             { type: 'effect', effect: { type: 'set_flag', flag: 'met_ling_ruoyu', value: true } },
             { type: 'end' },
         ],
@@ -278,6 +246,7 @@ export const SCRIPTS: Record<string, Script> = {
                     zh: '看什么看？没见过歌手吗？'
                 }, emotion: 'angry'
             },
+            { type: 'input', prompt: { en: 'What do you say?', zh: '你说什么？' } },
             { type: 'effect', effect: { type: 'set_flag', flag: 'met_lu_jiaxin', value: true } },
             { type: 'end' },
         ],
