@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useGameStore } from '@/lib/store';
 import MainMenu from './MainMenu';
 import HUD from './HUD';
@@ -12,9 +12,12 @@ export default function GameEngine() {
     // gamePhase remains
     const { player, time, currentScriptId, setCurrentScriptId } = useGameStore();
 
+    const [hasSaveFile, setHasSaveFile] = useState(false);
+
     // Load game state from localStorage on mount
     useEffect(() => {
         const savedState = localStorage.getItem('love-sim-save');
+        setHasSaveFile(!!savedState);
         if (savedState) {
             useGameStore.setState(JSON.parse(savedState));
         }
@@ -39,6 +42,10 @@ export default function GameEngine() {
         setGamePhase('playing');
     };
 
+    const handleScriptComplete = useCallback(() => {
+        setCurrentScriptId(null);
+    }, [setCurrentScriptId]);
+
     //
     // Actually, store is initialized with default, so we can use it.
     // But wait, we are inside the component, so we can use hooks.
@@ -53,7 +60,7 @@ export default function GameEngine() {
             <MainMenu
                 onNewGame={handleNewGame}
                 onLoadGame={handleLoadGame}
-                hasSave={!!localStorage.getItem('love-sim-save')}
+                hasSave={hasSaveFile}
             />
         );
     }
@@ -66,10 +73,11 @@ export default function GameEngine() {
             <MapNavigation />
 
             {/* Overlay DialogueSystem if there is an active script running */}
+            {/* Overlay DialogueSystem if there is an active script running */}
             {currentScriptId && (
                 <DialogueSystem
                     scriptId={currentScriptId}
-                    onComplete={() => setCurrentScriptId(null)}
+                    onComplete={handleScriptComplete}
                 />
             )}
         </div>

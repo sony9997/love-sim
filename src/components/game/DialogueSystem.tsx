@@ -192,8 +192,8 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
 
         if (nextScript) {
             console.log('[DialogueSystem] Loading script:', nextId, 'with', nextScript.actions.length, 'actions');
-            setCurrentScript(nextScript);
-            setCurrentIndex(0);
+            // Update global store to trigger useEffect re-initialization
+            useGameStore.setState({ currentScriptId: nextId });
         } else {
             // Unknown script, end conversation
             console.warn(`[DialogueSystem] Script not found: ${nextId}`);
