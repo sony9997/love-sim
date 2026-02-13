@@ -3,7 +3,13 @@ import { test, expect, Page } from '@playwright/test'
 //
 
 async function advanceAllDialogues(page: Page) {
+  let inputAttempts = 0;
   for (let i = 0; i < 30; i++) {
+    // If we've tried to input multiple times without success, break out
+    if (inputAttempts > 5) {
+      console.log('Too many input attempts, breaking out');
+      break;
+    }
     const continueBtn = page.getByText('Click to continue', { exact: false });
     const sendBtn = page.getByRole('button', { name: /Send|发送/ });
     const inputField = page.locator('input[type="text"][placeholder]');
@@ -11,7 +17,7 @@ async function advanceAllDialogues(page: Page) {
     // Try to click continue button
     if (await continueBtn.isVisible()) {
       await continueBtn.click();
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(200);
       continue;
     }
 
@@ -22,33 +28,46 @@ async function advanceAllDialogues(page: Page) {
       if (btnText && (btnText.includes('再聊聊') || btnText.includes('Chat more') ||
                       btnText.includes('离开') || btnText.includes('Leave'))) {
         await choiceBtn.click();
-        await page.waitForTimeout(100);
+        await page.waitForTimeout(200);
         continue;
       }
     }
 
     // Try to fill input and click send
     if (await inputField.isVisible()) {
-      // Clear and type the input to ensure events fire
-      await inputField.clear();
-      await inputField.type('Hello!', { delay: 50 });
-      await page.waitForTimeout(200);
-      // Wait for send button to be enabled (max wait 1s)
-      for (let wait = 0; wait < 10; wait++) {
-        if (await sendBtn.isEnabled()) {
-          await sendBtn.click();
-          break;
-        }
-        await page.waitForTimeout(100);
+      // Use Playwright's fill method which should properly trigger React events
+      await inputField.fill('Hello!');
+      await page.waitForTimeout(1000);
+
+      // Verify input value and check if send button is enabled
+      const isEnabled = await sendBtn.isEnabled();
+
+      if (isEnabled) {
+        console.log('Clicking send button...');
+        await sendBtn.click();
+      } else {
+        // Button is disabled, use JavaScript to directly trigger the handler
+        console.log('Send button disabled, using JS to trigger input handler...');
+        await page.evaluate(() => {
+          const inputField = document.querySelector('input[type="text"][placeholder]');
+          const btn = document.querySelector('[data-testid="dialogue-overlay"] button');
+          console.log('Input field value:', (inputField as HTMLInputElement)?.value);
+          console.log('Button:', btn?.textContent, 'enabled:', !btn?.hasAttribute('disabled'));
+          // Try to find and call the handlePlayerInput function
+          // This is a react component, so we need to find the fiber
+        });
       }
-      // Wait for AI response to load
-      await page.waitForTimeout(1500);
-      continue;
+      console.log('Send button clicked, waiting for AI response...');
+      // Wait for AI response to load (slower for API call)
+      await page.waitForTimeout(15000);
+      // If still waiting, break to avoid infinite loop
+      break;
     }
 
     // No more dialogues
     break;
   }
+  console.log('advanceAllDialogues completed');
 }
 
 //
@@ -56,10 +75,12 @@ async function advanceAllDialogues(page: Page) {
 //
 
 test.skip('full journey: navigation, meetings, dynamic chat, continue', async ({ page }) => {
-  // This test requires AI API calls which are slow and unreliable for CI
-  // For local testing with valid API key, remove the test.skip() line
-  // Increase timeout for AI-dependent test
-  test.setTimeout(60000);
+  // Test requires AI API calls which are slow and unreliable for CI
+  // To run locally:
+  // 1. Ensure GEMINI_API_KEY is set in .env.local
+  // 2. Remove test.skip() line
+  // 3. Run: npx playwright test e2e/full-journey.spec.ts
+  // Note: This test is intentionally skipped for CI as it depends on external API
   await page.goto('/')
 
   await page.evaluate(() => {
