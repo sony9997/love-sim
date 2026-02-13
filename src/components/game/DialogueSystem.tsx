@@ -6,7 +6,9 @@ import { useGameStore } from '@/lib/store';
 import { Script, ChoiceOption, SCRIPTS, ScriptAction } from '@/lib/game-data/scripts';
 import { CHARACTERS } from '@/lib/game-data/characters';
 import { AIService } from '@/lib/ai-service';
-import { CharacterId } from '@/lib/game-data/types';
+import { CharacterId, ExtendedAgentState } from '@/lib/game-data/types';
+import { addAgentMemory, getRecentMemories } from '@/lib/agent/memory';
+import { updateRelationshipStatus } from '@/lib/agent/relationship';
 
 interface DialogueSystemProps {
     scriptId: string;
@@ -46,7 +48,36 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                 setIsLoading(true);
                 try {
                     const charId = scriptId as CharacterId;
-                    const response = await AIService.getAgentResponse(charId, 'Hello', useGameStore.getState());
+                    const gameState = useGameStore.getState();
+                    const response = await AIService.getAgentResponse(charId, 'Hello', gameState);
+
+                    // Update agent state with memory of this interaction
+                    const agentState = gameState.agentStates[charId] as ExtendedAgentState;
+                    const newAgentState = addAgentMemory(
+                        agentState,
+                        `Player greeted: "Hello"`,
+                        'dialogue',
+                        10 // Positive valence for greeting
+                    );
+
+                    // Update relationship status based on affection
+                    const relationship = gameState.relationships[charId];
+                    const newStatus = updateRelationshipStatus(relationship.affection, relationship.status);
+
+                    // Update store with new agent state and relationship
+                    useGameStore.setState({
+                        agentStates: {
+                            ...gameState.agentStates,
+                            [charId]: newAgentState,
+                        },
+                        relationships: {
+                            ...gameState.relationships,
+                            [charId]: {
+                                ...relationship,
+                                status: newStatus,
+                            },
+                        },
+                    });
 
                     // Create a dynamic script
                     const dynamicScript: Script = {
@@ -167,7 +198,7 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
         });
 
         if (!currentAction) return;
-        if (['effect', 'background', 'jump'].includes(currentAction.type)) {
+        if (['effect', 'background', 'jump', 'end'].includes(currentAction.type)) {
             console.log('[DialogueSystem] Auto-advancing for action type:', currentAction.type);
             handleNext();
         }
@@ -231,8 +262,27 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                 return;
             }
 
+            const gameState = useGameStore.getState();
+
             // Get AI response
-            const response = await AIService.getAgentResponse(characterId, input, useGameStore.getState());
+            const response = await AIService.getAgentResponse(characterId, input, gameState);
+
+            // Update agent state with memory of this interaction
+            const agentState = gameState.agentStates[characterId] as ExtendedAgentState;
+            const newAgentState = addAgentMemory(
+                agentState,
+                `Player said: "${input}"`,
+                'dialogue',
+                20 // Positive valence for player input
+            );
+
+            // Update store with new agent state
+            useGameStore.setState({
+                agentStates: {
+                    ...gameState.agentStates,
+                    [characterId]: newAgentState,
+                },
+            });
 
             // Create a dynamic dialogue action for the AI response
             const aiDialogue: ScriptAction = {

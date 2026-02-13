@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { GameState, CharacterId, Time, Stats, AgentState } from './game-data/types';
+import { createAgentState } from './agent/core';
 
 interface GameStore extends GameState {
     currentScriptId: string | null;
@@ -40,10 +41,26 @@ const INITIAL_STATE: GameState = {
         lu_jiaxin: { affection: 0, status: 'stranger', eventsSeen: [] },
     },
     agentStates: {
-        su_qingqian: { mood: 'neutral', currentGoal: 'Manage Student Council', memory: [] },
-        chen_siyao: { mood: 'happy', currentGoal: 'Practice Dancing', memory: [] },
-        ling_ruoyu: { mood: 'neutral', currentGoal: 'Solve Physics Problem', memory: [] },
-        lu_jiaxin: { mood: 'neutral', currentGoal: 'Ride Motorcycle', memory: [] },
+        su_qingqian: {
+            mood: { base: 'neutral', intensity: 50, triggers: [] },
+            currentGoal: { id: 'manage_council', description: 'Manage Student Council', priority: 10, completed: false, targetType: 'activity', targetId: 'student_council' },
+            memory: [],
+        },
+        chen_siyao: {
+            mood: { base: 'happy', intensity: 60, triggers: [] },
+            currentGoal: { id: 'practice_dance', description: 'Practice Dancing', priority: 10, completed: false, targetType: 'activity', targetId: 'campus_map' },
+            memory: [],
+        },
+        ling_ruoyu: {
+            mood: { base: 'neutral', intensity: 50, triggers: [] },
+            currentGoal: { id: 'solve_physics', description: 'Solve Physics Problem', priority: 10, completed: false, targetType: 'activity', targetId: 'lab' },
+            memory: [],
+        },
+        lu_jiaxin: {
+            mood: { base: 'neutral', intensity: 50, triggers: [] },
+            currentGoal: { id: 'ride_motorcycle', description: 'Ride Motorcycle', priority: 10, completed: false, targetType: 'activity', targetId: 'city_map' },
+            memory: [],
+        },
     },
     flags: {},
     currentScriptId: null,

@@ -6,13 +6,35 @@ import MainMenu from './MainMenu';
 import HUD from './HUD';
 import MapNavigation from './MapNavigation';
 import DialogueSystem from './DialogueSystem';
+import AgentManager from './AgentManager';
+import { CharacterId } from '@/lib/game-data/types';
+import { createAgentState } from '@/lib/agent/core';
+import { getScheduledLocation } from '@/lib/agent/scheduler';
 
 export default function GameEngine() {
     const [gamePhase, setGamePhase] = useState<'menu' | 'playing'>('menu');
     // gamePhase remains
-    const { player, time, currentScriptId, setCurrentScriptId } = useGameStore();
+    const { player, time, currentScriptId, setCurrentScriptId, agentStates, relationships } = useGameStore();
 
     const [hasSaveFile, setHasSaveFile] = useState(false);
+
+    // Initialize agent states if not present (for new games)
+    useEffect(() => {
+        const state = useGameStore.getState();
+        const charIds: CharacterId[] = ['su_qingqian', 'chen_siyao', 'ling_ruoyu', 'lu_jiaxin'];
+
+        // Check if agent states need initialization
+        const agentStateKeys = Object.keys(state.agentStates);
+        if (agentStateKeys.length < charIds.length) {
+            const newAgentStates = { ...state.agentStates };
+            charIds.forEach((charId) => {
+                if (!newAgentStates[charId]) {
+                    newAgentStates[charId] = createAgentState(charId);
+                }
+            });
+            useGameStore.setState({ agentStates: newAgentStates });
+        }
+    }, []);
 
     // Load game state from localStorage on mount
     useEffect(() => {
@@ -22,6 +44,29 @@ export default function GameEngine() {
             useGameStore.setState(JSON.parse(savedState));
         }
     }, []);
+
+    // Update agent locations based on schedule
+    useEffect(() => {
+        if (gamePhase === 'playing') {
+            const charIds: CharacterId[] = ['su_qingqian', 'chen_siyao', 'ling_ruoyu', 'lu_jiaxin'];
+            const currentState = useGameStore.getState();
+            const newAgentStates = { ...currentState.agentStates };
+
+            charIds.forEach((charId) => {
+                const agentState = newAgentStates[charId] as any;
+                if (agentState && !agentState.currentLocation) {
+                    // Set initial location based on schedule
+                    const scheduledLocation = getScheduledLocation(charId, currentState.time);
+                    newAgentStates[charId] = {
+                        ...agentState,
+                        currentLocation: scheduledLocation,
+                    };
+                }
+            });
+
+            useGameStore.setState({ agentStates: newAgentStates });
+        }
+    }, [time, gamePhase]);
 
     // Auto-save on state change
     useEffect(() => {
@@ -72,7 +117,9 @@ export default function GameEngine() {
             {/* Map Navigation is always rendered but might be covered by dialogue */}
             <MapNavigation />
 
-            {/* Overlay DialogueSystem if there is an active script running */}
+            {/* Agent Manager handles autonomous agent behaviors */}
+            <AgentManager />
+
             {/* Overlay DialogueSystem if there is an active script running */}
             {currentScriptId && (
                 <DialogueSystem

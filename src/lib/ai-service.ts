@@ -1,6 +1,8 @@
-import { CharacterId, GameState, LocalizedText } from './game-data/types';
+import { CharacterId, GameState, LocalizedText, ExtendedAgentState } from './game-data/types';
 
 import { CHARACTERS } from './game-data/characters';
+import { getRecentMemories, ConversationContext } from './agent/memory';
+import { calculateConnectionStrength } from './agent/relationship';
 
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
@@ -38,6 +40,14 @@ async function callGemini(prompt: string): Promise<string> {
     }
 }
 
+// Conversation contexts for each character (in-memory, reset on game load)
+const conversationContexts: Record<CharacterId, ConversationContext> = {
+    su_qingqian: new ConversationContext(10),
+    chen_siyao: new ConversationContext(10),
+    ling_ruoyu: new ConversationContext(10),
+    lu_jiaxin: new ConversationContext(10),
+};
+
 export const AIService = {
     getAgentResponse: async (
         characterId: CharacterId,
@@ -46,8 +56,31 @@ export const AIService = {
     ): Promise<LocalizedText> => {
         const character = CHARACTERS[characterId];
         const rel = gameState.relationships[characterId];
-        const agentState = gameState.agentStates[characterId];
+        const agentState = gameState.agentStates[characterId] as ExtendedAgentState;
         const lang = gameState.language;
+
+        // Get recent memories for context
+        const recentMemories = getRecentMemories(agentState, 3);
+        const memoriesContext = recentMemories.length
+            ? `\nRelevant Memories:\n${recentMemories.map((m) => `- ${m.content} (valence: ${m.emotionalValence})`).join('\n')}`
+            : '';
+
+        // Get conversation history
+        const context = conversationContexts[characterId];
+        const historyMessages = context.getContext().slice(-6); // Last 6 turns (3 exchanges)
+        const characterName = typeof character.name === 'string' ? character.name : character.name.zh || character.name.en;
+        const historyContext = historyMessages.length
+            ? `\nConversation History:\n${historyMessages.map((m) => `${m.role === 'user' ? 'Player' : characterName}`).map((m) => `- ${m}`).join('\n')}`
+            : '';
+
+        // Calculate connection strength with player (using any since we're creating a partial state)
+        const connectionStrength = calculateConnectionStrength(
+            agentState,
+            {
+                perceivedAffection: { chen_siyao: rel.affection },
+                socialCircle: [characterId],
+            } as ExtendedAgentState
+        );
 
         const prompt = `
 ${character.systemPrompt}
@@ -55,21 +88,30 @@ ${character.systemPrompt}
 Current Context:
 - Time: Day ${gameState.time.day}, ${gameState.time.hour}:00
 - Location: ${gameState.player.location} (Player is here)
-- Relationship: Affection ${rel?.affection || 0}, Status: ${rel?.status || 'stranger'}
-- Your Mood: ${agentState.mood}
-- Your Current Goal: ${agentState.currentGoal}
+- Relationship: Affection ${rel.affection}, Status: ${rel.status}
+- Connection Strength: ${connectionStrength}
+- Your Mood: ${agentState.mood.base} (intensity: ${agentState.mood.intensity})
+- Your Current Goal: ${agentState.currentGoal?.description || 'None'}
+
+${memoriesContext}
+${historyContext}
 
 Player says: "${playerInput}"
 
 Task: Respond to the player in ${lang === 'zh' ? 'Chinese (Simplified)' : 'English'}.
 Requirements:
-1. Stay in character.
+1. Stay in character based on your personality: ${agentState.personality.join(', ')}.
 2. Keep it concise (1-2 sentences).
-3. Reflect your current mood and relationship status.
-4. Return ONLY the dialogue text, no quotes.
+3. Reflect your current mood, relationship status, and connection with player.
+4. Reference past interactions if relevant.
+5. Return ONLY the dialogue text, no quotes.
 `;
 
         const responseText = await callGemini(prompt);
+
+        // Update conversation context
+        context.addMessage('user', playerInput);
+        context.addMessage('assistant', responseText.trim());
 
         // Since we need LocalizedText, and we asked for specific language, we can just return string if the type allows,
         // or we construct an object. The type definition says: string | { en: string; zh: string }
@@ -83,24 +125,36 @@ Requirements:
         gameState: GameState
     ): Promise<string> => {
         const character = CHARACTERS[characterId];
-        const agentState = gameState.agentStates[characterId];
+        const agentState = gameState.agentStates[characterId] as ExtendedAgentState;
+
+        // Check for proactive dialogue opportunities
+        const hasRecentInteraction = agentState.recentInteractions.length > 0;
+        const context = conversationContexts[characterId];
+        const recentChat = context.getContext().length > 0;
 
         const prompt = `
 ${character.systemPrompt}
 
 Current Context:
 - Time: Day ${gameState.time.day}, ${gameState.time.hour}:00
-- Your Current Location: (Unknown, you decide)
-- Your Mood: ${agentState.mood}
-- Your Current Goal: ${agentState.currentGoal}
+- Your Current Location: ${agentState.currentLocation}
+- Your Mood: ${agentState.mood.base} (intensity: ${agentState.mood.intensity})
+- Your Current Goal: ${agentState.currentGoal?.description || 'None'}
+- Connected with Player: ${hasRecentInteraction || recentChat}
 
-Task: Decide where you should be right now based on your personality and schedule.
+Task: Decide your next action based on your personality, goals, and social connections.
 Available Locations: 'dorm_room', 'campus_map', 'student_council', 'library', 'cafeteria', 'gym', 'city_map', 'bar', 'lab'.
+Available Actions: 'move', 'idle', 'proactive_dialogue' (if player is nearby and connection > 30).
 
-Return ONLY the Location ID from the list above.
+Return ONLY the action: Location ID for move, or action name.
 `;
-        const locationId = await callGemini(prompt);
-        return locationId.trim().replace(/['"]/g, '');
+        const action = await callGemini(prompt);
+        return action.trim().replace(/['"]/g, '');
+    },
+
+    // Reset conversation context for a character (e.g., on game load)
+    resetConversationContext: (characterId: CharacterId) => {
+        conversationContexts[characterId].clear();
     },
 
     getDirectorEvent: async (gameState: GameState): Promise<string | null> => {

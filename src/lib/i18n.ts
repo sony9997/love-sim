@@ -17,6 +17,18 @@ export const UI_TEXT = {
             examine: 'EXAMINE',
         },
         clickToContinue: 'Click to continue ▼',
+        agentVisualization: {
+            title: 'Agent Dashboard',
+            location: 'Location',
+            mood: 'Mood',
+            activity: 'Activity',
+            affection: 'Affection',
+            status: 'Status',
+            memories: 'Recent Memories',
+            goals: 'Current Goals',
+            hide: 'Hide Dashboard',
+            show: 'Show Dashboard',
+        },
     },
     zh: {
         newGame: '开始游戏',
@@ -36,6 +48,18 @@ export const UI_TEXT = {
             examine: '调查',
         },
         clickToContinue: '点击继续 ▼',
+        agentVisualization: {
+            title: '角色状态面板',
+            location: '当前位置',
+            mood: '情绪',
+            activity: '活动',
+            affection: '好感度',
+            status: '关系',
+            memories: '近期记忆',
+            goals: '当前目标',
+            hide: '隐藏面板',
+            show: '显示面板',
+        },
     },
 };
 
