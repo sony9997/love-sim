@@ -3,14 +3,31 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGameStore } from '@/lib/store';
-import { Script, ChoiceOption, SCRIPTS, ScriptAction } from '@/lib/game-data/scripts';
+import { Script, ChoiceOption, getScriptById, DialogueScene } from '@/lib/game-data/scripts';
 import { CHARACTERS } from '@/lib/game-data/characters';
 import { AIService } from '@/lib/ai-service';
-import { CharacterId } from '@/lib/game-data/types';
+import { CharacterId, LocationId, LocalizedText } from '@/lib/game-data/types';
+import { updateRelationshipAndCheckProgression } from '@/lib/relationship-utils';
 
 interface DialogueSystemProps {
     scriptId: string;
     onComplete: () => void;
+}
+
+// Action-based script structure for dynamic AI dialogues
+type ScriptAction =
+    | { type: 'dialogue'; speaker: string; text: LocalizedText; emotion?: string }
+    | { type: 'choice'; options: ChoiceOption[] }
+    | { type: 'input'; prompt?: LocalizedText }
+    | { type: 'effect'; effect: { type: string } }
+    | { type: 'background'; image?: string }
+    | { type: 'jump'; nextId: string }
+    | { type: 'end' };
+
+interface DynamicScript {
+    id: string;
+    actions: ScriptAction[];
+    locationId?: LocationId;
 }
 
 export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemProps) {
@@ -18,39 +35,106 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [playerInput, setPlayerInput] = useState('');
-    const { setFlag, modStats, updateRelationship, setPlayerLocation, advanceTime, language } = useGameStore();
+    const [hasSentInput, setHasSentInput] = useState(false);
+    const { language } = useGameStore();
+
+    // Helper to convert DynamicScript to Script
+    const convertDynamicScript = (dynamicScript: DynamicScript, charId?: CharacterId): Script => {
+        // Extract first dialogue as the main message
+        const dialogueAction = dynamicScript.actions.find(a => a.type === 'dialogue');
+        const choiceAction = dynamicScript.actions.find(a => a.type === 'choice');
+
+        const messages: DialogueScene['messages'] = [];
+        const options: DialogueScene['options'] = [];
+
+        if (dialogueAction) {
+            messages.push({
+                id: '0',
+                speaker: dialogueAction.speaker as CharacterId,
+                text: dialogueAction.text
+            });
+        }
+
+        if (choiceAction) {
+            options.push(...choiceAction.options);
+        }
+
+        return {
+            id: dynamicScript.id,
+            type: 'default' as const,
+            category: 'dynamic',
+            priority: 0,
+            scene: {
+                id: dynamicScript.id,
+                characterId: charId || 'su_qingqian',
+                locationId: dynamicScript.locationId || 'campus_map',
+                messages,
+                options
+            }
+        };
+    };
 
     // Initialize Script
     useEffect(() => {
+        console.log('[DialogueSystem] useEffect triggered with scriptId:', scriptId);
+        console.log('[DialogueSystem] Current state flags:', useGameStore.getState().flags);
+
+        // If scriptId is null, clear the current script and return early
+        if (!scriptId) {
+            console.log('[DialogueSystem] scriptId is null, clearing currentScript');
+            setCurrentScript(null);
+            return;
+        }
+
+        // Read the flag here (outside async function) to ensure we have the latest state
+        const charId = scriptId as CharacterId;
+        const isCharacterInteraction = CHARACTERS[charId];
+        const metFlag = isCharacterInteraction ? `met_${charId}` : undefined;
+        const hasMet = isCharacterInteraction ? useGameStore.getState().flags[metFlag!] : false;
+
+        console.log('[DialogueSystem] Character check:', charId, 'IsCharacter:', isCharacterInteraction, 'HasMet:', hasMet, 'MetFlag:', metFlag);
+
         const initScript = async () => {
             // 1. Check if it's a pre-defined script
-            if (SCRIPTS[scriptId]) {
-                setCurrentScript(SCRIPTS[scriptId]);
+            const script = getScriptById(scriptId);
+            console.log('[DialogueSystem] getScriptById returned:', script ? script.id : 'undefined');
+
+            if (script) {
+                console.log('[DialogueSystem] Setting currentScript to:', script.id);
+                // Update player location if script specifies a different location
+                if (script.scene.locationId && script.scene.locationId !== useGameStore.getState().player.location) {
+                    console.log(`[DialogueSystem] Changing location from ${useGameStore.getState().player.location} to ${script.scene.locationId}`);
+                    useGameStore.getState().setPlayerLocation(script.scene.locationId);
+                }
+                setCurrentScript(script);
                 setCurrentIndex(0);
                 return;
             }
 
             // 2. Check if it's a character interaction (Dynamic AI)
-            if (CHARACTERS[scriptId]) {
+            if (CHARACTERS[charId]) {
                 // Check for "First Meeting" script
-                const metFlag = `met_${scriptId}`;
-                const meetScriptId = `meet_${scriptId}`;
-                const hasMet = useGameStore.getState().flags[metFlag];
+                const meetScriptId = `meet_${charId}`;
+                const hasMet = metFlag ? useGameStore.getState().flags[metFlag] : false;
 
-                if (!hasMet && SCRIPTS[meetScriptId]) {
-                    setCurrentScript(SCRIPTS[meetScriptId]);
+                const meetScript = getScriptById(meetScriptId);
+                console.log(`[DialogueSystem] Check: hasMet=${hasMet}, meetScript=${!!meetScript}`);
+                if (!hasMet && meetScript) {
+                    console.log('[DialogueSystem] Showing meeting script because flag not set');
+                    setCurrentScript(meetScript);
                     setCurrentIndex(0);
                     return;
                 }
+                console.log('[DialogueSystem] Flag is set or meetScript not found, generating dynamic AI dialogue');
 
                 setIsLoading(true);
                 try {
-                    const charId = scriptId as CharacterId;
                     const response = await AIService.getAgentResponse(charId, 'Hello', useGameStore.getState());
 
-                    // Create a dynamic script
-                    const dynamicScript: Script = {
-                        id: `dynamic_${Date.now()}`,
+                    // Create a dynamic script with actions structure
+                    const dynamicScript: DynamicScript = {
+                        id: `dynamic_${charId}_${Date.now()}`,
+                        locationId: 'campus_map',
                         actions: [
                             {
                                 type: 'dialogue',
@@ -62,18 +146,25 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                                 type: 'choice',
                                 options: [
                                     {
+                                        id: 'chat_more',
                                         label: { en: 'Chat more', zh: '再聊聊' },
-                                        nextId: charId // Loop back to character ID to trigger new AI response
+                                        nextMessageId: charId
                                     },
                                     {
+                                        id: 'leave',
                                         label: { en: 'Leave', zh: '离开' },
-                                        nextId: 'end_conversation'
+                                        nextMessageId: 'end_conversation'
                                     }
                                 ]
                             }
                         ]
                     };
-                    setCurrentScript(dynamicScript);
+
+                    const convertedScript = convertDynamicScript(dynamicScript, charId);
+                    // Debug: add a flag to identify dynamic scripts
+                    (convertedScript as any).isDynamic = true;
+                    (convertedScript as any).scriptId = scriptId;
+                    setCurrentScript(convertedScript);
                     setCurrentIndex(0);
                 } catch (error) {
                     console.error("AI Service Error:", error);
@@ -85,13 +176,61 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
             }
 
             // 3. Fallback: End if unknown
+            console.log('[DialogueSystem] Unknown scriptId, calling onComplete');
             onComplete();
         };
 
         initScript();
+
+        return () => {
+            // Cleanup: set isLoading to false to prevent state update on unmount
+            console.log('[DialogueSystem] Cleanup: unmounting');
+            setIsLoading(false);
+        };
     }, [scriptId, onComplete]);
 
-    const currentAction = currentScript?.actions[currentIndex];
+    const currentAction = currentScript?.scene.messages[currentIndex];
+
+    // Helper to get text based on language
+    const getText = (text: string | { en: string; zh: string }) => {
+        if (typeof text === 'string') return text;
+        return text[language] || text.en;
+    };
+
+    // Render Logic
+    const currentMessage = currentScript?.scene.messages[currentIndex];
+    const isDialogue = !!currentMessage;
+    // Check if player input is expected
+    const hasPlayerInputOption = currentScript?.scene.options.some(o => o.id === 'player_input') || false;
+    const isLastMessage = currentScript && currentIndex === currentScript.scene.messages.length - 1;
+    const isPlayerMessage = currentMessage?.speaker === 'player';
+    const needsPlayerInput = isLastMessage && (isPlayerMessage || hasPlayerInputOption) && !hasSentInput;
+    // Options are available when there are options in the script
+    const hasOptions = (currentScript?.scene.options?.length || 0) > 0 && !needsPlayerInput;
+    // Show "Click to continue" only when there's a dialogue message but no options
+    const showClickToContinue = isDialogue && !hasOptions && !needsPlayerInput;
+
+    // Debug logging
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.log('[DialogueSystem] Render debug:', {
+            isDialogue,
+            hasPlayerInputOption,
+            hasOptions,
+            isLastMessage,
+            needsPlayerInput,
+            showClickToContinue,
+            hasSentInput,
+            messageCount: currentScript?.scene.messages.length,
+            optionCount: currentScript?.scene.options?.length
+        });
+        // Log Continue button condition
+        const continueButtonShows = hasSentInput && hasPlayerInputOption;
+        console.log('[DialogueSystem] Continue button shows:', continueButtonShows, {
+            hasSentInput,
+            hasPlayerInputOption,
+            needsPlayerInput
+        });
+    }
 
     const handleNext = () => {
         if (!currentAction) {
@@ -99,128 +238,141 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
             return;
         }
 
-        if (currentAction.type === 'end') {
+        // If at end of messages, show options if available
+        if (currentIndex >= currentScript.scene.messages.length) {
+            if (currentScript.scene.options.length > 0) {
+                return; // Wait for choice
+            }
             onComplete();
             return;
         }
 
-        if (currentAction.type === 'choice') return; // Wait for choice
-        if (currentAction.type === 'input') return; // Wait for player input
-
-        // Process effects before moving to next
-        if (currentAction.type === 'effect') {
-            const { effect } = currentAction;
-            switch (effect.type) {
-                case 'set_flag': setFlag(effect.flag, effect.value); break;
-                case 'mod_stat': modStats({ [effect.stat]: effect.amount }); break;
-                case 'mod_affection': updateRelationship(effect.charId, effect.amount); break;
-                case 'move': setPlayerLocation(effect.locationId); break;
-                case 'advance_time': advanceTime(effect.hours); break;
-            }
-        }
-
-        if (currentAction.type === 'jump') {
-            const nextId = currentAction.nextId;
-            // Handle jump to character ID (AI loop)
-            if (CHARACTERS[nextId]) {
-                // We need to trigger the useEffect again. 
-                // Since we can't easily force re-mount, we might need to call a prop or reset state.
-                // Actually, changing scriptId in store would trigger re-mount of this component if the parent handles it.
-                // But here we are inside the component.
-                // Let's use a hack: set scriptId in store? No, that causes loop.
-                // Better: call initScript logic again?
-                // Simplest: useGameStore.setState({ currentScriptId: nextId }) will cause this component to unmount and remount with new prop if Parent uses key={scriptId}.
-                useGameStore.setState({ currentScriptId: nextId });
-                return;
-            }
-
-            const nextScript = SCRIPTS[nextId];
-            if (nextScript) {
-                setCurrentScript(nextScript);
-                setCurrentIndex(0);
-            } else if (nextId === 'end_conversation') {
-                onComplete();
-            } else {
-                // Unknown script, end conversation
-                onComplete();
-            }
-            return;
-        }
-
-        // Move to next action
-        const nextIndex = currentIndex + 1;
-        if (currentScript && nextIndex >= currentScript.actions.length) {
-            // Reached end of script
-            onComplete();
-        } else {
-            setCurrentIndex(nextIndex);
-        }
+        // Auto-advance for non-interactive actions
+        // In dialogue script structure, we always need user interaction to advance
     };
 
     // Auto-advance for non-interactive actions
     useEffect(() => {
-        console.log('[DialogueSystem] Auto-advance check:', {
-            hasAction: !!currentAction,
-            actionType: currentAction?.type,
-            currentIndex,
-            scriptId: currentScript?.id
-        });
+        if (!currentScript) return;
 
-        if (!currentAction) return;
-        if (['effect', 'background', 'jump'].includes(currentAction.type)) {
-            console.log('[DialogueSystem] Auto-advancing for action type:', currentAction.type);
-            handleNext();
+        // Show first message or options
+        if (currentIndex === 0 && currentScript.scene.messages.length > 0) {
+            console.log('[DialogueSystem] Showing dialogue:', currentScript.scene.messages[0].speaker);
         }
-    }, [currentIndex, currentAction]);
+    }, [currentIndex, currentScript]);
+
+    // Reset state when script changes
+    useEffect(() => {
+        setHasSentInput(false);
+        setPlayerInput('');
+    }, [scriptId]);
+
+    // Debug: log state on render
+    useEffect(() => {
+        if (typeof window !== 'undefined' && currentScript) {
+            console.log('[DialogueState]', {
+                hasOptions,
+                hasPlayerInputOption,
+                hasSentInput,
+                needsPlayerInput,
+                isDialogue,
+                isLastMessage,
+                optionCount: currentScript.scene.options?.length,
+                messageCount: currentScript.scene.messages.length,
+                currentIndex,
+                playerInput: playerInput ? `"${playerInput}"` : 'empty'
+            });
+        }
+    }, [currentScript, hasOptions, hasPlayerInputOption, hasSentInput, needsPlayerInput, isDialogue, isLastMessage, currentIndex, playerInput]);
 
     const handleChoice = (option: ChoiceOption) => {
-        const nextId = option.nextId;
-        console.log('[DialogueSystem] Choice selected:', option.label, '-> nextId:', nextId);
+        const nextMessageId = option.nextMessageId;
+        console.log('[DialogueSystem] handleChoice called:', option.label, '-> nextMessageId:', nextMessageId);
+        console.log('[DialogueSystem] Current scriptId prop:', scriptId);
+        console.log('[DialogueSystem] Current store currentScriptId:', useGameStore.getState().currentScriptId);
 
-        if (nextId === 'end_conversation') {
+        // player_input option means the conversation is done
+        if (nextMessageId === 'player_input' || nextMessageId === 'end_conversation') {
             onComplete();
             return;
         }
 
-        // If nextId is a character, it means we want to loop AI chat
-        if (CHARACTERS[nextId]) {
-            console.log('[DialogueSystem] Triggering AI chat for character:', nextId);
-            useGameStore.setState({ currentScriptId: nextId });
+        // If nextMessageId is a character, it means we want to loop AI chat
+        const charId = nextMessageId as CharacterId;
+        if (CHARACTERS[charId]) {
+            console.log('[DialogueSystem] Triggering AI chat for character:', charId);
+
+            // Set the "met" flag if this is the first interaction
+            // This ensures the meeting script doesn't show again
+            const metFlag = `met_${charId}`;
+            useGameStore.setState((state) => {
+                const hasMet = state.flags[metFlag];
+                console.log(`[DialogueSystem] handleChoice: metFlag=${metFlag}, hasMet=${hasMet}, currentScriptId=${state.currentScriptId}`);
+                if (!hasMet) {
+                    console.log(`[DialogueSystem] Setting ${metFlag} flag and currentScriptId to ${charId}`);
+                    return {
+                        flags: { ...state.flags, [metFlag]: true },
+                        currentScriptId: charId
+                    };
+                }
+                console.log(`[DialogueSystem] Flag already set, only setting currentScriptId to ${charId}`);
+                return { currentScriptId: charId };
+            });
+
+            // Update relationship and check for stage progression
+            const gameState = useGameStore.getState();
+            const { newStage, stageChanged } = updateRelationshipAndCheckProgression(
+                gameState,
+                charId,
+                5 // Default affection gain for interaction
+            );
+
+            console.log(`[DialogueSystem] Relationship update: ${gameState.relationships[charId].status} -> ${newStage}`);
+
+            if (stageChanged) {
+                console.log(`[DialogueSystem] Stage upgraded! New stage: ${newStage}`);
+                // Here you could trigger a stage progression event or notification
+            }
+
+            // Note: We don't call onComplete() here because we want to continue
+            // the conversation with the new character's dialogue
             return;
         }
 
-        const nextScript = SCRIPTS[nextId];
-        console.log('[DialogueSystem] Looking for script:', nextId, 'Found:', !!nextScript);
+        const nextScript = getScriptById(nextMessageId);
+        console.log('[DialogueSystem] Looking for script:', nextMessageId, 'Found:', !!nextScript);
 
         if (nextScript) {
-            console.log('[DialogueSystem] Loading script:', nextId, 'with', nextScript.actions.length, 'actions');
-            // Update global store to trigger useEffect re-initialization
-            useGameStore.setState({ currentScriptId: nextId });
+            console.log('[DialogueSystem] Loading script:', nextMessageId);
+            useGameStore.setState({ currentScriptId: nextMessageId });
         } else {
             // Unknown script, end conversation
-            console.warn(`[DialogueSystem] Script not found: ${nextId}`);
+            console.warn(`[DialogueSystem] Script not found: ${nextMessageId}`);
             onComplete();
         }
     };
 
     const handlePlayerInput = async () => {
+        console.log('[DialogueSystem] handlePlayerInput called, playerInput:', playerInput);
         if (!playerInput.trim()) return;
 
         const input = playerInput.trim();
         setPlayerInput(''); // Clear input
+        setHasSentInput(true); // Mark that player has sent input
         setIsLoading(true);
 
         try {
             // Determine which character is speaking (from previous dialogue or context)
-            // For now, we'll look for the last character dialogue in the script
             let characterId: CharacterId | null = null;
 
-            // Search backwards for the last character dialogue
-            for (let i = currentIndex - 1; i >= 0; i--) {
-                const action = currentScript?.actions[i];
-                if (action?.type === 'dialogue' && action.speaker !== 'player' && action.speaker !== 'narrator') {
-                    characterId = action.speaker as CharacterId;
-                    break;
+            // Search backwards for the last character dialogue (start from currentIndex, not currentIndex-1)
+            if (currentScript) {
+                for (let i = currentIndex; i >= 0; i--) {
+                    const msg = currentScript.scene.messages[i];
+                    if (msg && msg.speaker !== 'player' && msg.speaker !== 'narrator') {
+                        characterId = msg.speaker as CharacterId;
+                        break;
+                    }
                 }
             }
 
@@ -231,29 +383,58 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                 return;
             }
 
+            // Set the "met" flag for this character
+            const metFlag = `met_${characterId}`;
+            useGameStore.setState((state) => {
+                if (!state.flags[metFlag]) {
+                    console.log(`[DialogueSystem] Setting ${metFlag} flag`);
+                    return { flags: { ...state.flags, [metFlag]: true } };
+                }
+                return {};
+            });
+
             // Get AI response
             const response = await AIService.getAgentResponse(characterId, input, useGameStore.getState());
 
-            // Create a dynamic dialogue action for the AI response
-            const aiDialogue: ScriptAction = {
-                type: 'dialogue',
+            // Create a new dialogue message for the AI response
+            const aiMessage = {
+                id: `ai_${Date.now()}`,
                 speaker: characterId,
-                text: response,
-                emotion: 'default'
+                text: response
             };
 
-            // Insert the AI response and another input action into the script
-            const newActions = [
-                ...currentScript!.actions.slice(0, currentIndex + 1),
-                aiDialogue,
-                { type: 'input' } as ScriptAction,
-                ...currentScript!.actions.slice(currentIndex + 1)
+            // Insert the AI response into the script's messages
+            const newMessages = [
+                ...currentScript!.scene.messages.slice(0, currentIndex + 1),
+                aiMessage,
+                ...currentScript!.scene.messages.slice(currentIndex + 1)
             ];
 
-            setCurrentScript({ ...currentScript!, actions: newActions });
+            // Create a new option to continue the conversation
+            const continueOption: ChoiceOption = {
+                id: `continue_${Date.now()}`,
+                label: { en: 'Continue', zh: '继续' },
+                nextMessageId: 'end_conversation'
+            };
+
+            const newOptions = [...currentScript!.scene.options, continueOption];
+
+            // Update the script with new messages
+            const updatedScript: Script = {
+                ...currentScript!,
+                scene: {
+                    ...currentScript!.scene,
+                    messages: newMessages,
+                    options: newOptions
+                }
+            };
+
+            setCurrentScript(updatedScript);
             setCurrentIndex(currentIndex + 1); // Move to AI response
         } catch (error) {
             console.error('[DialogueSystem] Failed to get AI response:', error);
+            // If AI fails, just complete the dialogue with the player's message
+            onComplete();
         } finally {
             setIsLoading(false);
         }
@@ -267,32 +448,26 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
         );
     }
 
-    if (!currentScript || !currentAction) return null;
-
-    // Helper to get text based on language
-    const getText = (text: string | { en: string; zh: string }) => {
-        if (typeof text === 'string') return text;
-        return text[language] || text.en;
-    };
-
-    // Render Logic
-    const isDialogue = currentAction.type === 'dialogue';
-    const isChoice = currentAction.type === 'choice';
-    const isInput = currentAction.type === 'input';
+    // If scriptId is null or currentScript is null, return null to unmount
+    if (!scriptId || !currentScript) {
+        console.log('[DialogueSystem] Returning null - unmounting');
+        return null;
+    }
+    console.log('[DialogueSystem] Rendering dialogue box');
 
     return (
-        <div className="absolute inset-0 z-50 flex flex-col justify-end pointer-events-none" data-testid="dialogue-overlay">
+        <div className="absolute inset-0 z-50 flex flex-col justify-end pointer-events-none" data-testid="dialogue-box">
             {/* Character Sprites Layer */}
             <div className="absolute inset-0 flex items-end justify-center pb-32 pointer-events-none">
                 <AnimatePresence mode="wait">
-                    {isDialogue && currentAction.speaker !== 'player' && currentAction.speaker !== 'narrator' && (
+                    {isDialogue && currentMessage?.speaker !== 'player' && currentMessage?.speaker !== 'narrator' && (
                         <motion.img
-                            key={currentAction.speaker}
+                            key={currentMessage!.speaker}
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 20 }}
-                            src={CHARACTERS[currentAction.speaker]?.sprites[currentAction.emotion || 'default']}
-                            alt={currentAction.speaker}
+                            src={CHARACTERS[currentMessage!.speaker]?.sprites['default']}
+                            alt={currentMessage!.speaker}
                             className="h-[80%] object-contain drop-shadow-2xl"
                         />
                     )}
@@ -300,16 +475,28 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
             </div>
 
             {/* Dialogue Box */}
-            {(isDialogue || isChoice || isInput) && (
-                <div className="pointer-events-auto relative mx-auto mb-8 w-full max-w-4xl rounded-xl border border-white/20 bg-black/80 p-6 shadow-2xl backdrop-blur-md">
-                    {isDialogue && (
+            {(isDialogue || hasOptions) && (
+                <div className="pointer-events-auto relative mx-auto mb-32 w-full max-w-4xl rounded-xl border border-white/20 bg-black/80 p-6 shadow-2xl backdrop-blur-md">
+                    {/* Debug: show state in DOM */}
+                    {typeof window !== 'undefined' && (
+                        <div className="fixed top-4 right-4 z-[100] bg-black/80 text-[10px] text-yellow-400 p-2 font-mono rounded">
+                            <div>scriptId: {String(currentScript?.id || 'N/A')}</div>
+                            <div>hasOptions: {String(hasOptions)}</div>
+                            <div>hasPlayerInputOption: {String(hasPlayerInputOption)}</div>
+                            <div>hasSentInput: {String(hasSentInput)}</div>
+                            <div>optionCount: {String(currentScript?.scene.options?.length)}</div>
+                            <div>messageCount: {String(currentScript?.scene.messages.length)}</div>
+                            <div>playerInput: {playerInput}</div>
+                        </div>
+                    )}
+                    {showClickToContinue && (
                         <div onClick={handleNext} className="cursor-pointer">
                             <h3 className="mb-2 text-xl font-bold text-blue-400">
-                                {currentAction.speaker === 'player' ? (language === 'zh' ? '你' : 'You') :
-                                    currentAction.speaker === 'narrator' ? '' :
-                                        getText(CHARACTERS[currentAction.speaker]?.name)}
+                                {currentMessage!.speaker === 'player' ? (language === 'zh' ? '你' : 'You') :
+                                    currentMessage!.speaker === 'narrator' ? '' :
+                                        getText(CHARACTERS[currentMessage!.speaker]?.name)}
                             </h3>
-                            <p className="text-lg text-white leading-relaxed">{getText(currentAction.text)}</p>
+                            <p className="text-lg text-white leading-relaxed">{getText(currentMessage!.text)}</p>
                             <div className="mt-4 flex justify-end">
                                 <span className="animate-pulse text-xs text-gray-400">
                                     {language === 'zh' ? '点击继续 ▼' : 'Click to continue ▼'}
@@ -318,29 +505,98 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                         </div>
                     )}
 
-                    {isChoice && (
-                        <div className="flex flex-col space-y-3">
-                            {currentAction.options.map((option, idx) => (
-                                <button
-                                    key={idx}
-                                    onClick={() => handleChoice(option)}
-                                    className="w-full rounded-lg border border-white/10 bg-white/5 p-4 text-left text-lg font-medium text-white transition-all hover:bg-blue-600 hover:scale-[1.02]"
-                                >
-                                    {getText(option.label)}
-                                </button>
-                            ))}
+                    {/* Player input section - shown when player_input option exists and not yet sent */}
+                    {/* DEBUG: hasPlayerInputOption={String(hasPlayerInputOption)} hasSentInput={String(hasSentInput)} hasOptions={String(hasOptions)} isLastMessage={String(isLastMessage)} isDialogue={String(isDialogue)} */}
+                    {hasPlayerInputOption && !hasSentInput && (isLastMessage || !isDialogue) && (
+                        <div className="space-y-3">
+                            <input
+                                type="text"
+                                data-testid="player-input"
+                                value={playerInput}
+                                onInput={(e) => {
+                                    console.log('[DialogueSystem] onInput triggered, value:', (e.target as HTMLInputElement).value);
+                                    setPlayerInput((e.target as HTMLInputElement).value);
+                                }}
+                                onChange={(e) => {
+                                    console.log('[DialogueSystem] onChange triggered, value:', (e.target as HTMLInputElement).value);
+                                }}
+                                onKeyPress={(e) => {
+                                    if (e.key === 'Enter' && playerInput.trim()) {
+                                        handlePlayerInput();
+                                    }
+                                }}
+                                placeholder={language === 'zh' ? '输入你想说的话...' : 'Type your message...'}
+                                className="w-full rounded-lg border border-white/20 bg-white/10 p-4 text-lg text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none"
+                                autoFocus
+                            />
+                            <button
+                                data-testid="send-button"
+                                onClick={(e) => {
+                                    console.log('[DialogueSystem] Send button clicked, calling handlePlayerInput');
+                                    console.log('[DialogueSystem] Player input:', playerInput);
+                                    (e.currentTarget as HTMLElement).style.backgroundColor = 'red';
+                                    handlePlayerInput();
+                                }}
+                                onMouseDown={(e) => {
+                                    console.log('[DialogueSystem] Send button onMouseDown triggered');
+                                }}
+                                onTouchStart={(e) => {
+                                    console.log('[DialogueSystem] Send button onTouchStart triggered');
+                                }}
+                                disabled={!playerInput.trim()}
+                                className="w-full rounded-lg bg-blue-600 p-4 text-lg font-medium text-white transition-all hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {language === 'zh' ? '发送' : 'Send'}
+                            </button>
                         </div>
                     )}
 
-                    {isInput && (
+                    {/* Continue button after sending input to end conversation */}
+                    {hasSentInput && hasPlayerInputOption && (
+                        <div className="space-y-3" data-testid="continue-section">
+                            <button
+                                data-testid="continue-button"
+                                onClick={(e) => {
+                                    console.log('[DialogueSystem] Continue button onClick triggered');
+                                    e.stopPropagation();
+                                    setHasSentInput(false);
+                                    console.log('[DialogueSystem] Calling onComplete...');
+                                    onComplete();
+                                    console.log('[DialogueSystem] onComplete called');
+                                }}
+                                className="w-full rounded-lg border border-blue-500/30 bg-blue-500/10 p-4 text-lg font-medium text-blue-300 transition-all hover:bg-blue-600 hover:text-white"
+                            >
+                                {language === 'zh' ? '继续' : 'Continue'}
+                            </button>
+                        </div>
+                    )}
+                    {/* Regular options - shown when hasOptions (and not player input scenario) */}
+                    {hasOptions && !hasSentInput && !hasPlayerInputOption && (
                         <div className="flex flex-col space-y-3">
-                            {currentAction.prompt && (
-                                <p className="text-sm text-gray-400 mb-2">{getText(currentAction.prompt)}</p>
-                            )}
+                            {currentScript.scene.options
+                                .filter(option => option.id !== 'player_input')
+                                .map((option, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleChoice(option)}
+                                        className="w-full rounded-lg border border-white/10 bg-white/5 p-4 text-left text-lg font-medium text-white transition-all hover:bg-blue-600 hover:scale-[1.02]"
+                                    >
+                                        {getText(option.label)}
+                                    </button>
+                                ))}
+                        </div>
+                    )}
+
+                    {/* Fallback: player input when at last message without explicit player_input option */}
+                    {!hasOptions && !hasPlayerInputOption && !hasSentInput && isDialogue && currentIndex === currentScript.scene.messages.length - 1 && (
+                        <div className="flex flex-col space-y-3">
                             <input
                                 type="text"
                                 value={playerInput}
-                                onChange={(e) => setPlayerInput(e.target.value)}
+                                onChange={(e) => {
+                                    console.log('[DialogueSystem] onChange triggered, value:', e.target.value);
+                                    setPlayerInput(e.target.value);
+                                }}
                                 onKeyPress={(e) => {
                                     if (e.key === 'Enter' && playerInput.trim()) {
                                         handlePlayerInput();

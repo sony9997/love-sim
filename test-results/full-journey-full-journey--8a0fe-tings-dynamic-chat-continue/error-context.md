@@ -4,67 +4,85 @@
 - generic [ref=e1]:
   - main [ref=e2]:
     - generic [ref=e3]:
+      - generic [ref=e4]: "Phase: playing | Script: meet_ling_ruoyu"
       - generic:
-        - generic [ref=e4]:
-          - generic [ref=e5]:
-            - generic [ref=e6]:
-              - img [ref=e7]
-              - generic [ref=e10]: Mon 11.5:00
-            - generic [ref=e12]:
-              - img [ref=e13]
-              - generic [ref=e16]: ¥1000
-          - generic [ref=e17]: Day 1
-        - generic [ref=e18]:
-          - generic [ref=e19]:
-            - img [ref=e20]
-            - generic [ref=e28]: "10"
-            - generic [ref=e29]: INT
-          - generic [ref=e30]:
-            - img [ref=e31]
-            - generic [ref=e33]: "10"
-            - generic [ref=e34]: CHM
-          - generic [ref=e35]:
-            - img [ref=e36]
-            - generic [ref=e42]: "10"
-            - generic [ref=e43]: FIT
-      - generic [ref=e46]:
-        - generic [ref=e47]:
-          - heading "Mist City Center" [level=1] [ref=e48]
-          - paragraph [ref=e49]: The bustling city center.
-        - generic [ref=e50]:
-          - button "Campus MOVE" [ref=e51]:
-            - img [ref=e53]
-            - generic [ref=e57]:
-              - heading "Campus" [level=3] [ref=e58]
-              - paragraph [ref=e59]: MOVE
-          - button "Mall EXAMINE" [ref=e60]:
-            - img [ref=e62]
-            - generic [ref=e66]:
-              - heading "Mall" [level=3] [ref=e67]
-              - paragraph [ref=e68]: EXAMINE
-          - button "Bar MOVE" [ref=e69]:
-            - img [ref=e71]
-            - generic [ref=e74]:
-              - heading "Bar" [level=3] [ref=e75]
-              - paragraph [ref=e76]: MOVE
-          - button "Biker Club MOVE" [ref=e77]:
-            - img [ref=e79]
-            - generic [ref=e82]:
-              - heading "Biker Club" [level=3] [ref=e83]
-              - paragraph [ref=e84]: MOVE
-          - button "Walk around TALK" [active] [ref=e85]:
-            - img [ref=e87]
-            - generic [ref=e90]:
-              - heading "Walk around" [level=3] [ref=e91]
-              - paragraph [ref=e92]: TALK
-      - generic:
-        - generic:
-          - img "su_qingqian"
-        - generic [ref=e94] [cursor=pointer]:
-          - heading "Su Qingqian" [level=3] [ref=e95]
-          - paragraph [ref=e96]: ...
-          - generic [ref=e98]: Click to continue ▼
-  - button "Open Next.js Dev Tools" [ref=e104] [cursor=pointer]:
-    - img [ref=e105]
-  - alert [ref=e108]
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - generic [ref=e7]:
+              - img [ref=e8]
+              - generic [ref=e11]: 周一 9.5:00
+            - generic [ref=e13]:
+              - img [ref=e14]
+              - generic [ref=e17]: money1000
+          - generic [ref=e18]: 第 1
+        - generic [ref=e19]:
+          - generic [ref=e20]:
+            - img [ref=e21]
+            - generic [ref=e29]: "10"
+            - generic [ref=e30]: 智力
+          - generic [ref=e31]:
+            - img [ref=e32]
+            - generic [ref=e34]: "10"
+            - generic [ref=e35]: 魅力
+          - generic [ref=e36]:
+            - img [ref=e37]
+            - generic [ref=e43]: "10"
+            - generic [ref=e44]: 体能
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - generic [ref=e48]:
+              - generic [ref=e49]: su_qingqian
+              - generic [ref=e50]: stranger
+            - generic [ref=e52]:
+              - generic [ref=e53]: chen_siyao
+              - generic [ref=e54]: stranger
+            - generic [ref=e56]:
+              - generic [ref=e57]: ling_ruoyu
+              - generic [ref=e58]: stranger
+            - generic [ref=e60]:
+              - generic [ref=e61]: lu_jiaxin
+              - generic [ref=e62]: stranger
+          - generic [ref=e63]:
+            - generic [ref=e64]: 🏆 20 pts
+            - generic [ref=e65]: 1 unlocked
+      - generic [ref=e66]:
+        - generic [ref=e68]:
+          - generic [ref=e69]:
+            - heading "物理实验室" [level=1] [ref=e70]
+            - paragraph [ref=e71]: 充满了复杂的设备。凌若羽不在上课时会在这里工作。
+          - generic [ref=e72]:
+            - button "观察实验 调查" [active] [ref=e73]:
+              - img [ref=e75]
+              - generic [ref=e78]:
+                - heading "观察实验" [level=3] [ref=e79]
+                - paragraph [ref=e80]: 调查
+            - button "离开 移动" [ref=e81]:
+              - img [ref=e83]
+              - generic [ref=e86]:
+                - heading "离开" [level=3] [ref=e87]
+                - paragraph [ref=e88]: 移动
+            - button "找凌教授 交谈" [ref=e89]:
+              - img [ref=e91]
+              - generic [ref=e94]:
+                - heading "找凌教授" [level=3] [ref=e95]
+                - paragraph [ref=e96]: 交谈
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - img [ref=e99]
+              - text: characters_here
+            - button "教授 教授" [ref=e103]:
+              - generic [ref=e104]: 教授
+              - generic [ref=e105]: 教授
+        - generic [ref=e106]: MapNavigation Rendered
+      - generic [ref=e108]:
+        - generic [ref=e109]: "scriptId: meet_ling_ruoyu"
+        - generic [ref=e110]: "hasOptions: true"
+        - generic [ref=e111]: "hasPlayerInputOption: true"
+        - generic [ref=e112]: "hasSentInput: false"
+        - generic [ref=e113]: "optionCount: 1"
+        - generic [ref=e114]: "messageCount: 2"
+        - generic [ref=e115]: "playerInput:"
+  - button "Open Next.js Dev Tools" [ref=e121] [cursor=pointer]:
+    - img [ref=e122]
+  - alert [ref=e125]
 ```

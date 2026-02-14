@@ -8,28 +8,46 @@ import MapNavigation from './MapNavigation';
 import DialogueSystem from './DialogueSystem';
 
 export default function GameEngine() {
-    const [gamePhase, setGamePhase] = useState<'menu' | 'playing'>('menu');
-    // gamePhase remains
-    const { player, time, currentScriptId, setCurrentScriptId } = useGameStore();
+    const gameState = useGameStore();
+    const { setGamePhase, setCurrentScriptId } = useGameStore();
 
-    const [hasSaveFile, setHasSaveFile] = useState(false);
-
-    // Load game state from localStorage on mount
+    // Force re-render tracking - use a custom hook to subscribe to changes
+    const [, setTick] = useState(0);
     useEffect(() => {
-        const savedState = localStorage.getItem('love-sim-save');
-        setHasSaveFile(!!savedState);
-        if (savedState) {
-            useGameStore.setState(JSON.parse(savedState));
+        console.log('[GameEngine] Re-rendering:', {
+            gamePhase: gameState.gamePhase,
+            currentScriptId: gameState.currentScriptId
+        });
+        setTick(t => t + 1);
+    }, [gameState.gamePhase, gameState.currentScriptId]);
+
+    // Check for save file - use lazy init which only runs on client
+    // The typeof window check prevents this from running during SSR
+    const [hasSaveFile] = useState(() => {
+        if (typeof window === 'undefined') {
+            return false;
         }
-    }, []);
+        const savedState = localStorage.getItem('love-sim-save');
+        if (savedState) {
+            try {
+                const parsedState = JSON.parse(savedState);
+                useGameStore.setState(parsedState);
+                return true;
+            } catch (error) {
+                console.error('Failed to load save state:', error);
+                localStorage.removeItem('love-sim-save');
+            }
+        }
+        return false;
+    });
 
     // Auto-save on state change
     useEffect(() => {
-        if (gamePhase === 'playing') {
+        if (gameState.gamePhase === 'playing') {
             const state = useGameStore.getState();
             localStorage.setItem('love-sim-save', JSON.stringify(state));
         }
-    }, [player, time, gamePhase]);
+    }, [gameState.player, gameState.time, gameState.gamePhase]);
 
     const handleNewGame = () => {
         // Reset store to initial state (need to implement reset in store or just manually set)
@@ -43,7 +61,10 @@ export default function GameEngine() {
     };
 
     const handleScriptComplete = useCallback(() => {
+        console.log('[GameEngine] handleScriptComplete called');
+        console.log('[GameEngine] Current scriptId before:', useGameStore.getState().currentScriptId);
         setCurrentScriptId(null);
+        console.log('[GameEngine] Current scriptId after:', useGameStore.getState().currentScriptId);
     }, [setCurrentScriptId]);
 
     //
@@ -55,7 +76,7 @@ export default function GameEngine() {
 
     // Wait, I need to add language to destructuring first.
 
-    if (gamePhase === 'menu') {
+    if (gameState.gamePhase === 'menu') {
         return (
             <MainMenu
                 onNewGame={handleNewGame}
@@ -65,20 +86,44 @@ export default function GameEngine() {
         );
     }
 
+    // Debug logging
+    if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+        console.log('[GameEngine] Render debug:', {
+            gamePhase: gameState.gamePhase,
+            currentScriptId: gameState.currentScriptId,
+            mapNavVisible: gameState.gamePhase === 'playing',
+            dialogueVisible: !!gameState.currentScriptId
+        });
+        // Add a DOM marker to verify rendering
+        (window as any).__gameEngineRenderCount = ((window as any).__gameEngineRenderCount || 0) + 1;
+        document.body.setAttribute('data-game-phase', gameState.gamePhase);
+        document.body.setAttribute('data-current-script-id', String(gameState.currentScriptId));
+    }
+
+    // Simple debug: always render a marker element to verify the return path
+    const debugMarker = typeof window !== 'undefined' && process.env.NODE_ENV === 'development' ? (
+        <div data-testid="game-engine-debug" style={{ display: 'block' }} className="fixed bottom-4 right-4 bg-red-500 text-black text-xs p-2 z-[1000]">
+            Phase: {gameState.gamePhase} | Script: {String(gameState.currentScriptId)}
+        </div>
+    ) : null;
+
     return (
-        <div className="relative h-screen w-full overflow-hidden bg-black text-white">
+        <div className="relative h-screen w-full overflow-hidden bg-black text-white" data-testid="game-engine">
+            {debugMarker}
             <HUD />
 
             {/* Map Navigation is always rendered but might be covered by dialogue */}
-            <MapNavigation />
+            {gameState.gamePhase === 'playing' && <MapNavigation data-testid="map-navigation" />}
 
             {/* Overlay DialogueSystem if there is an active script running */}
             {/* Overlay DialogueSystem if there is an active script running */}
-            {currentScriptId && (
+            {gameState.currentScriptId ? (
                 <DialogueSystem
-                    scriptId={currentScriptId}
+                    scriptId={gameState.currentScriptId}
                     onComplete={handleScriptComplete}
                 />
+            ) : (
+                <div style={{ display: 'none' }} data-testid="no-dialogue-indicator"></div>
             )}
         </div>
     );
