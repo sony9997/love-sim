@@ -292,11 +292,23 @@ export default function DialogueSystem({ scriptId, onComplete }: DialogueSystemP
                 emotion: 'default'
             };
 
-            // Insert the AI response and another input action into the script
+            // Insert the AI response and choice (Chat more/Leave) into the script
             const newActions = [
                 ...currentScript!.actions.slice(0, currentIndex + 1),
                 aiDialogue,
-                { type: 'input' } as ScriptAction,
+                {
+                    type: 'choice',
+                    options: [
+                        {
+                            label: { en: 'Chat more', zh: '再聊聊' },
+                            nextId: characterId // Loop back to character ID to trigger new AI response
+                        },
+                        {
+                            label: { en: 'Leave', zh: '离开' },
+                            nextId: 'end_conversation'
+                        }
+                    ]
+                } as ScriptAction,
                 ...currentScript!.actions.slice(currentIndex + 1)
             ];
 

@@ -5,6 +5,13 @@ import { getRecentMemories, ConversationContext } from './agent/memory';
 import { calculateConnectionStrength } from './agent/relationship';
 
 const GEMINI_API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
+
+// Check if we're in test mode (set via localStorage or URL param)
+const isTestMode = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('love-sim-test-mode') === 'true' ||
+           new URLSearchParams(window.location.search).has('test-mode');
+};
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // Helper to call Gemini API
@@ -54,6 +61,15 @@ export const AIService = {
         playerInput: string,
         gameState: GameState
     ): Promise<LocalizedText> => {
+        // In test mode, return mock response immediately
+        if (isTestMode()) {
+            console.log('[AIService] Test mode - returning mock response');
+            const lang = gameState.language;
+            return lang === 'zh'
+                ? `（测试响应）你说的是："${playerInput}"，很有意思。`
+                : `(Test response) You said: "${playerInput}". Interesting.`;
+        }
+
         const character = CHARACTERS[characterId];
         const rel = gameState.relationships[characterId];
         const agentState = gameState.agentStates[characterId] as ExtendedAgentState;
