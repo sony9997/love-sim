@@ -41,26 +41,10 @@ const INITIAL_STATE: GameState = {
         lu_jiaxin: { affection: 0, status: 'stranger', eventsSeen: [] },
     },
     agentStates: {
-        su_qingqian: {
-            mood: { base: 'neutral', intensity: 50, triggers: [] },
-            currentGoal: { id: 'manage_council', description: 'Manage Student Council', priority: 10, completed: false, targetType: 'activity', targetId: 'student_council' },
-            memory: [],
-        },
-        chen_siyao: {
-            mood: { base: 'happy', intensity: 60, triggers: [] },
-            currentGoal: { id: 'practice_dance', description: 'Practice Dancing', priority: 10, completed: false, targetType: 'activity', targetId: 'campus_map' },
-            memory: [],
-        },
-        ling_ruoyu: {
-            mood: { base: 'neutral', intensity: 50, triggers: [] },
-            currentGoal: { id: 'solve_physics', description: 'Solve Physics Problem', priority: 10, completed: false, targetType: 'activity', targetId: 'lab' },
-            memory: [],
-        },
-        lu_jiaxin: {
-            mood: { base: 'neutral', intensity: 50, triggers: [] },
-            currentGoal: { id: 'ride_motorcycle', description: 'Ride Motorcycle', priority: 10, completed: false, targetType: 'activity', targetId: 'city_map' },
-            memory: [],
-        },
+        su_qingqian: createAgentState('su_qingqian'),
+        chen_siyao: createAgentState('chen_siyao'),
+        ling_ruoyu: createAgentState('ling_ruoyu'),
+        lu_jiaxin: createAgentState('lu_jiaxin'),
     },
     flags: {},
     currentScriptId: null,
