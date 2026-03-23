@@ -152,11 +152,10 @@ export const SCRIPTS: Record<string, Script> = {
     meet_su_qingqian: {
         id: 'meet_su_qingqian',
         actions: [
-            { type: 'background', image: '/assets/backgrounds/student_council.png' },
             {
                 type: 'dialogue', speaker: 'narrator', text: {
-                    en: 'You enter the Student Council Office. It is impeccably clean.',
-                    zh: '你走进学生会办公室。这里一尘不染。'
+                    en: 'A girl with a cold expression looks up from her work.',
+                    zh: '一个神色冷淡的女孩抬起头来。'
                 }
             },
             {
