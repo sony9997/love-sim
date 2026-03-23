@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { GameState, CharacterId, Time, Stats, AgentState } from './game-data/types';
+import { createAgentState } from './agent/core';
 
 interface GameStore extends GameState {
     currentScriptId: string | null;
@@ -40,10 +41,10 @@ const INITIAL_STATE: GameState = {
         lu_jiaxin: { affection: 0, status: 'stranger', eventsSeen: [] },
     },
     agentStates: {
-        su_qingqian: { mood: 'neutral', currentGoal: 'Manage Student Council', memory: [] },
-        chen_siyao: { mood: 'happy', currentGoal: 'Practice Dancing', memory: [] },
-        ling_ruoyu: { mood: 'neutral', currentGoal: 'Solve Physics Problem', memory: [] },
-        lu_jiaxin: { mood: 'neutral', currentGoal: 'Ride Motorcycle', memory: [] },
+        su_qingqian: createAgentState('su_qingqian'),
+        chen_siyao: createAgentState('chen_siyao'),
+        ling_ruoyu: createAgentState('ling_ruoyu'),
+        lu_jiaxin: createAgentState('lu_jiaxin'),
     },
     flags: {},
     currentScriptId: null,
