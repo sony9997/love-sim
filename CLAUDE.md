@@ -163,3 +163,45 @@ src/
 | `npx vitest run` | 运行所有单元测试 (66/66 通过) |
 | `npx playwright test` | 运行 E2E 测试 (20/21 通过) |
 | `npx playwright test e2e/agent-behaviors.spec.ts` | 仅运行 Agent 行为测试 |
+
+## Gstack
+
+使用 `/browse` 技能进行所有网页浏览操作，**不要使用 `mcp__claude-in-chrome__*` 工具**。
+
+### 可用技能
+
+| 技能 | 用途 |
+|------|------|
+| `/office-hours` | 办公时间 |
+| `/plan-ceo-review` | CEO 计划评审 |
+| `/plan-eng-review` | 工程计划评审 |
+| `/plan-design-review` | 设计计划评审 |
+| `/design-consultation` | 设计咨询 |
+| `/review` | 代码审查 |
+| `/ship` | 发布 |
+| `/land-and-deploy` | 合并并部署 |
+| `/canary` | 金丝雀发布 |
+| `/benchmark` | 性能基准测试 |
+| `/browse` | 网页浏览（替代 mcp__claude-in-chrome__*） |
+| `/qa` | 质量保证测试 |
+| `/qa-only` | 仅 QA 测试 |
+| `/design-review` | 设计审查 |
+| `/setup-browser-cookies` | 设置浏览器 Cookie |
+| `/setup-deploy` | 设置部署配置 |
+| `/retro` | 回顾会议 |
+| `/investigate` | 问题调查 |
+| `/document-release` | 发布文档 |
+| `/codex` | Codex 相关 |
+| `/careful` | 谨慎模式 |
+| `/freeze` | 冻结 |
+| `/guard` | 守护 |
+| `/unfreeze` | 解冻 |
+| `/gstack-upgrade` | 升级 gstack |
+
+### 故障排除
+
+如果 gstack 技能无法正常工作，运行以下命令重新构建二进制文件并注册技能：
+
+```bash
+cd .claude/skills/gstack && ./setup
+```
